@@ -43,7 +43,7 @@ def getArgs():
         help="override maximum number of runs before aborting (default {})"
         .format(DEFAULT_RUNS))
     parser.add_argument("-t", "--timeout", type=int, default=DEFAULT_TIMEOUT,
-        help="set a timeout for the scheduler (default {})"
+        help="set a timeout in seconds for the scheduler (default {})"
         .format(DEFAULT_TIMEOUT))
     parser.add_argument("--success-multiplier", type=float,
         default=DEFAULT_SUCCESS_MULTIPLIER,
@@ -62,6 +62,10 @@ def getArgs():
     args.configDir = os.path.realpath(args.configDir)
     args.outputParent = os.path.realpath(args.outputParent)
     args.workFolder = os.path.realpath(args.workFolder)
+
+    if args.max_runs < 1:
+        print("Warning: max_runs < 1. Using default ({}).".format(DEFAULT_RUNS))
+        args.max_runs = DEFAULT_RUNS
 
     return args
 
@@ -143,6 +147,8 @@ def archiveFile(oldPath, testID):
     newPath = os.path.join(archDir, os.path.basename(oldPath))
     os.rename(oldPath, newPath)
 
+    return newPath
+
 # Gets a list of directories in the specified parent directory, excluding
 # archives.
 def getNonArchiveDirs(parentDir):
@@ -214,16 +220,11 @@ def compareResultLatencies(results, targetLatency):
     return true
 
 # Make a new VDbench configuration file.
-def makeNewVDBConfig(oldConfig, newIORate, testID):
-    nameOnly = stripIDFromFile(oldConfig)
-    newName = "{name}{idSep}{testID}{ext}".format(
-        name=nameOnly, idSep=ID_SEP, testID=testID,
-        ext=os.path.splitext(oldConfig)[-1])
+def makeNewVDBConfig(oldConfig, newConfig, newIORate):
     try:
         vdbconfig.makeNewConfig(oldConfig, newName, newIORate)
     except IOException as e:
         raise e
-    return newName
 
 # Helper for makeNewVDBConfig that tries to remove the test ID from a config
 # file name.
@@ -236,13 +237,6 @@ def stripIDFromFile(filename):
 def getTestIDFromConfig(filename):
     partials = re.split(ID_SEP, os.path.splitext(os.path.basename(filename))[0])
     return int(partials[-1]) if len(partials) > 1 else 0
-
-# Make new configuration files for all VDbench instances.
-def makeAllNewConfigs(configDir, newIORate, testID):
-    newConfigPaths = []
-    for f in getNonArchiveDirs(configDir):
-        newConfig = makeNewVDBConfig(f, newIORate, testID)
-        archiveFile(f, getTestIDFromConfig(f))
 
 # Make new configuration file for NetJobs.
 def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
@@ -262,7 +256,7 @@ def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
         with open(nj_path, "w") as f:
             # Test label, timeout/duration.
             f.write("{}:\n".format(identifier.replace(":", "_")))
-            f.write("-generaltimeout: {timeout}\n".format(timeout=timeout))
+            f.write("-generaltimeout: {timeout}s\n".format(timeout=timeout))
             # Target specs.
             for t in targets:
                 f.write("{target}: {command}\n".format(
@@ -279,20 +273,40 @@ def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
 def startNetJobs(njconfig, verbose=False):
     try:
         if verbose:
-            njargs = ("-l", "-v", currentNetJobsConfig)
+            njargs = ("-l", "-v", njconfig)
         else:
-            njargs = ("-l", currentNetJobsConfig)
+            njargs = ("-l", njconfig)
         NetJobs.main(njargs)
     except Exception as e:
         raise(e)
 
+# Calculate the new IO rate based on the given config file and the allPassed status.
+def calculateNewIORate(configFile, args, allPassed):
+    oldRate = # TK get old rate TKTKTKTKTK
+    multiplier = args.success_multiplier if allPassed else args.failure_multiplier
+    return oldRate * multiplier 
+
+# Update all config files and archive the old ones.
+def updateAndArchiveConfigs(args, allPassed, testID):
+    for f in os.listdir(args.configDir):
+        name = f
+        oldFile = archiveFile(f)
+        newIORate = calculateNewIORate(oldFile, args, allPassed)
+        makeNewVDBConfig(oldFile, name, newIORate)
+
 # Start the main run.
 def run(args, config, njconfig, verbose=False):
     run = 0
-    print(args)
+    
+    # Initial run.
+    startNetJobs(njconfig)
+
     while run < args.max_runs:
-
-
+        results = getAllTestResults(args.outputParent)
+        allPassed = compareResultLatencies(results, args.targetLatency)
+        archiveContents(args.outputParent, run)
+        updateAndArchiveConfigs(args, allPassed, run)
+        startNetJobs(njconfig)
         run += 1
 
 # Main.
