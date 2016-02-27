@@ -1,0 +1,34 @@
+<pre>
+Workload skew report
+
+Skew information will only be generated if:
+ - there is more than one Workload Definition
+ - there is more than one Storage Definition
+ - there is more than one Host
+ - there is more than one Slave
+
+
+Link to Run Definitions:         <A HREF="#_151405253">run1 For loops: None</A>
+
+
+<a name="_151405253"></a><i><b>15:31:57.004 Starting RD=run1; I/O rate: 1000; elapsed=60; For loops: None</b></i>
+
+15:32:57.152 
+15:32:57.153 Calculated versus requested workload skew. (Delta only shown if > 0.10% absolute)
+15:32:57.153 Note that for an Uncontrolled MAX run workload skew is irrelevant.
+15:32:57.153 
+15:32:57.153 Counts reported below are for non-warmup intervals.
+15:32:57.153 Note that for an Uncontrolled MAX run workload skew is irrelevant.
+15:32:57.153 
+15:32:57.153                    i/o   MB/sec   bytes   read     resp     read    write     resp     resp queue       skew     skew    skew 
+15:32:57.153 WD:               rate  1024**2     i/o    pct     time     resp     resp      max   stddev depth  requested observed   delta 
+15:32:57.154 wd1             122.47     0.48    4096  69.75    0.626    0.633    0.610  124.825    1.691   0.1     12.00%   12.15%  -0.15%
+15:32:57.154 wd2              99.81     0.39    4096 100.00    0.707    0.707    0.000  126.468    2.471   0.1     10.00%    9.90% 
+15:32:57.154 wd3             201.05     0.79    4096  69.63    0.662    0.676    0.630  126.695    2.186   0.1     20.00%   19.95% 
+15:32:57.154 wd4              49.80     0.19    4096 100.00    0.528    0.528    0.000   21.489    0.874   0.0      5.00%    4.94% 
+15:32:57.155 wd5             150.63     0.59    4096  50.30    0.668    0.696    0.639  126.596    1.602   0.1     15.00%   14.94% 
+15:32:57.155 wd6              20.58     0.08    4096 100.00    0.576    0.576    0.000   14.837    1.055   0.0      2.00%    2.04% 
+15:32:57.155 wd7             162.39     0.63    4096  85.21    0.702    0.713    0.639  126.657    1.609   0.1     16.00%   16.11%  -0.11%
+15:32:57.156 wd8             100.22     0.39    4096  50.33    0.600    0.579    0.620   22.236    0.878   0.1     10.00%    9.94% 
+15:32:57.156 wd9             100.98     0.39    4096  49.40    0.530    0.451    0.608   21.621    0.972   0.1     10.00%   10.02% 
+15:32:57.190 Total          1007.93     3.94    4096  70.45    0.642    0.648    0.625  126.695    1.715   0.6    100.00%  100.00%

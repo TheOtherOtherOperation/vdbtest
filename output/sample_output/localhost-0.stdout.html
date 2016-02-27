@@ -1,0 +1,93 @@
+<pre>
+stdout/stderr for slave=localhost-0
+
+15:31:54.729 15:31:54.726 SlaveJvm execution parameter:  '-m localhost'
+15:31:54.729 15:31:54.727 SlaveJvm execution parameter:  '-n localhost-10-160215-15.31.54.357'
+15:31:54.730 15:31:54.727 SlaveJvm execution parameter:  '-l localhost-0'
+15:31:54.730 15:31:54.727 SlaveJvm execution parameter:  '-p 5570'
+15:31:54.730 15:31:54.727 SlaveJvm positional parameter: 'SlaveJvm'
+15:31:54.758 15:31:54.757 successfully connected to master localhost
+15:31:54.758 15:31:54.758 Connection to localhost using port 5570 successful
+15:31:55.045 15:31:55.043 ticks_per_second: 100
+15:31:55.070 15:31:55.069 Configuration interpretation took 0.03 seconds
+
+Link to Run Definitions:         <A HREF="#_151405253">run1 For loops: None</A>
+
+15:31:55.352 15:31:55.342 Beginning of run setup
+15:31:55.352 15:31:55.342 **********************
+15:31:55.352 
+15:31:55.352 
+15:31:55.470 15:31:55.459 File '/var/log/messages.1' does not exist. Monitoring bypassed
+15:31:55.524 15:31:55.516 Allocating Data Validation map: 10485760 one-byte entries for each 4096-byte block.
+15:31:55.524 15:31:55.519 Opening sd=sd1,lun=/dev/sdb; write: true; flags: OpenFlags: 0x00004000 OtherFlags: 0x00000000
+15:31:55.524 15:31:55.520 size: 42949672960
+15:31:55.524 15:31:55.520 bits_to_set: 2097152
+15:31:55.524 15:31:55.521 dedup_unit: 
+15:31:55.525  dedup_ratio:            4.0
+15:31:55.525  dedup_pct:              25
+15:31:55.525  dedup_adjusted:         20
+15:31:55.525  est_total_size:         40g
+15:31:55.525  dedup_unit:             4096
+15:31:55.525  est_unit_blocks:        10485760
+15:31:55.525  unique_blocks:          2097152
+15:31:55.525  duplicate_blocks:       8388608
+15:31:55.525  dedup_sets_reqd:        5%
+15:31:55.526  dedup_sets_used:        524288
+15:31:55.526  dedup_across:           true
+15:31:55.526  est_sets_pct:           5.000000
+15:31:55.526  uniques_written_across: 0.0
+15:31:55.526  uniques_written_acr_no: 0.0
+15:31:55.526  duplicates_written:     0.0
+15:31:55.526  
+15:31:55.526  uniques_written_across: 0 (blks)
+15:31:55.526  uniques_written_acr_no: 0 (blks)
+15:31:55.527  duplicates_written:     0 (blks)
+15:31:55.527  
+15:31:55.732 15:31:55.732 Started 9 Workload Generator threads.
+15:31:55.768 15:31:55.768 Started  8 i/o threads for sd1
+15:31:55.768 15:31:55.768 Started a total of  8 i/o threads.
+15:31:55.768 15:31:55.768 Waiting for task synchronization
+15:31:55.768 15:31:55.768 task_wait_start_complete: IO_task /dev/sdb 1
+15:31:55.969 15:31:55.968 Requesting full garbage collection
+15:31:55.969 15:31:55.969 GcTracker: cum:   1 intv:  1 ms:       8 mss:  0.00% Heap_MB max:   911 curr:   252 used:   148 free:   104 
+15:31:56.013 15:31:56.013 GcTracker: cum:   3 intv:  2 ms:      42 mss:  0.00% Heap_MB max:   911 curr:   252 used:    16 free:   236 
+15:31:56.014 15:31:56.013 task_wait_start_complete() end
+
+<a name="_151405253"></a><i><b>15:31:57.002 Starting RD=run1; I/O rate: 1000; elapsed=60; For loops: None</b></i>
+
+15:31:57.005 15:31:57.005 task_run_all(): 18 tasks
+15:32:57.216 15:32:57.216 Ended WT_task
+15:32:57.413 15:32:57.413 Interrupts issued for tasks WG_task: 13
+15:32:57.413 15:32:57.413 Sent 8/8 interrupts to waiting IO_task threads
+15:32:58.567 15:32:58.566 Data Validation counters: 
+15:32:58.567 15:32:58.567 Key   1: reads:        0 writes:    17449 
+15:32:58.567 15:32:58.567 Key   2: reads:        0 writes:      412 
+15:32:58.570 15:32:58.568 Dedup counters. Bytes written: 69.770m across: 14m (20.1%) on_sd: 0.0 (0.0%) dups: 55.770m (79.9%) resulting dedup=25.1% (3.99:1)
+15:32:58.570 15:32:58.568 Dedup options: 
+15:32:58.570  dedup_ratio:            4.0
+15:32:58.570  dedup_pct:              25
+15:32:58.570  dedup_adjusted:         20
+15:32:58.570  est_total_size:         40g
+15:32:58.571  dedup_unit:             4096
+15:32:58.571  est_unit_blocks:        10485760
+15:32:58.571  unique_blocks:          2097152
+15:32:58.571  duplicate_blocks:       8388608
+15:32:58.571  dedup_sets_reqd:        5%
+15:32:58.571  dedup_sets_used:        524288
+15:32:58.571  dedup_across:           true
+15:32:58.571  est_sets_pct:           5.000000
+15:32:58.571  uniques_written_across: 14m
+15:32:58.571  uniques_written_acr_no: 0.0
+15:32:58.571  duplicates_written:     55.770m
+15:32:58.571  
+15:32:58.571  uniques_written_across: 3584 (blks)
+15:32:58.571  uniques_written_acr_no: 0 (blks)
+15:32:58.571  duplicates_written:     14277 (blks)
+15:32:58.571  
+15:32:58.572 15:32:58.569 Java Heap in MB. max:  910.500; current:  252.000; used:   43.507; free:  208.493
+15:32:58.572 15:32:58.569 Maximum native memory allocation:       65,536; Current allocation:            0
+15:32:58.572 15:32:58.569 End of run
+15:32:58.572 15:32:58.569 **********
+15:32:58.572 
+15:32:58.572 
+15:32:59.222 15:32:59.220 Java Heap in MB. max:  910.500; current:  252.000; used:   43.507; free:  208.493

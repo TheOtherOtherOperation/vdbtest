@@ -1,0 +1,22 @@
+<pre>
+
+* Contents of parameter file: /home/benchmark/Desktop/vdbench_test.txt
+
+dedupratio=4 
+dedupunit=4k 
+compratio=1.6
+ 
+create_anchors=yes
+
+sd=sd1,lun=$lun,openflags=o_direct
+==> sd=sd1,lun=/dev/sdb,openflags=o_direct
+wd=wd1,sd=sd1,xfersize=4k,seekpct=100,rdpct=70,skew=12,range=(0,1.5)
+wd=wd2,sd=sd1,xfersize=4k,seekpct=0,skew=10,range=(0,0.01)
+wd=wd3,sd=sd1,xfersize=4k,seekpct=100,rdpct=70,skew=20,range=(1.5,4)
+wd=wd4,sd=sd1,xfersize=4k,seekpct=0,skew=5,range=(4,6)
+wd=wd5,sd=sd1,xfersize=4k,seekpct=100,rdpct=50,skew=15,range=(6,6.5)
+wd=wd6,sd=sd1,xfersize=4k,seekpct=0,skew=2,range=(4,6)
+wd=wd7,sd=sd1,xfersize=4k,seekpct=0,rdpct=85,skew=16,range=(6,9)
+wd=wd8,sd=sd1,xfersize=4k,seekpct=70,rdpct=50,skew=10,range=(3,8)
+wd=wd9,sd=sd1,xfersize=4k,seekpct=100,rdpct=50,skew=10
+rd=run1,wd=wd*,iorate=1000,format=yes,elapsed=60,interval=1

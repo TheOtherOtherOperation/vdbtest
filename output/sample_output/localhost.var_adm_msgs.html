@@ -1,0 +1,507 @@
+<pre>
+This file will contain the last 'nn' lines of files 
+/var/adm/messages and /var/adm/messages.0 on the target host. 
+ 
+Last 500 lines of /var/log/messages.1 and /var/log/messages
+command used: cat  /var/log/messages | tail -500
+
+Feb 15 07:36:53 localhost smartd[614]: Device: /dev/sdb, IE (SMART) not enabled, skip device
+Feb 15 07:36:53 localhost smartd[614]: Try 'smartctl -s on /dev/sdb' to turn on SMART features
+Feb 15 07:36:53 localhost smartd[614]: Monitoring 0 ATA and 0 SCSI devices
+Feb 15 07:36:53 localhost systemd: Started NTP client/server.
+Feb 15 07:36:53 localhost systemd: Started Avahi mDNS/DNS-SD Stack.
+Feb 15 07:36:53 localhost avahi-daemon[609]: Successfully called chroot().
+Feb 15 07:36:53 localhost avahi-daemon[609]: Successfully dropped remaining capabilities.
+Feb 15 07:36:53 localhost avahi-daemon[609]: No service file found in /etc/avahi/services.
+Feb 15 07:36:53 localhost avahi-daemon[609]: System host name is set to 'localhost'. This is not a suitable mDNS host name, looking for alternatives.
+Feb 15 07:36:53 localhost avahi-daemon[609]: Network interface enumeration completed.
+Feb 15 07:36:53 localhost avahi-daemon[609]: Registering HINFO record with values 'X86_64'/'LINUX'.
+Feb 15 07:36:53 localhost avahi-daemon[609]: Server startup complete. Host name is linux.local. Local service cookie is 2721603200.
+Feb 15 07:36:53 localhost systemd: Started RealtimeKit Scheduling Policy Service.
+Feb 15 07:36:53 localhost systemd-logind: New seat seat0.
+Feb 15 07:36:53 localhost systemd-logind: Watching system buttons on /dev/input/event0 (Power Button)
+Feb 15 07:36:53 localhost systemd: Started Login Service.
+Feb 15 07:36:53 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.PolicyKit1' unit='polkit.service'
+Feb 15 07:36:53 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.PolicyKit1' unit='polkit.service'
+Feb 15 07:36:53 localhost systemd: Starting Authorization Manager...
+Feb 15 07:36:53 localhost polkitd[673]: Started polkitd version 0.112
+Feb 15 07:36:53 localhost systemd: Started Modem Manager.
+Feb 15 07:36:53 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.PolicyKit1'
+Feb 15 07:36:53 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.PolicyKit1'
+Feb 15 07:36:53 localhost systemd: Started Authorization Manager.
+Feb 15 07:36:53 localhost accounts-daemon[616]: started daemon version 0.6.35
+Feb 15 07:36:53 localhost systemd: Started Accounts Service.
+Feb 15 07:36:53 localhost kernel: ip_tables: (C) 2000-2006 Netfilter Core Team
+Feb 15 07:36:53 localhost kernel: nf_conntrack version 0.5.0 (16384 buckets, 65536 max)
+Feb 15 07:36:53 localhost kernel: ip6_tables: (C) 2000-2006 Netfilter Core Team
+Feb 15 07:36:53 localhost systemd: Started Dynamic System Tuning Daemon.
+Feb 15 07:36:53 localhost kernel: Ebtables v2.0 registered
+Feb 15 07:36:53 localhost kernel: Bridge firewalling registered
+Feb 15 07:36:54 localhost systemd: Started firewalld - dynamic firewall daemon.
+Feb 15 07:36:54 localhost systemd: Starting Network Manager...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  NetworkManager (version 1.0.0-14.git20150121.b4ea599c.el7) is starting...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Read config: /etc/NetworkManager/NetworkManager.conf and conf.d: 10-ibft-plugin.conf
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  WEXT support is disabled
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  VPN: loaded org.freedesktop.NetworkManager.libreswan
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Acquired D-Bus service com.redhat.ifcfgrh1
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded plugin ifcfg-rh: (c) 2007 - 2013 Red Hat, Inc.  To report bugs please use the NetworkManager mailing list.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded plugin iBFT: (c) 2014 Red Hat, Inc.  To report bugs please use the NetworkManager mailing list.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded plugin keyfile: (c) 2007 - 2013 Red Hat, Inc.  To report bugs please use the NetworkManager mailing list.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  parsing /etc/sysconfig/network-scripts/ifcfg-lo ...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  parsing /etc/sysconfig/network-scripts/ifcfg-eno16777984 ...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>      read connection 'eno16777984'
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  monitoring kernel firmware directory '/lib/firmware'.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded device plugin: /usr/lib64/NetworkManager/libnm-device-plugin-bluetooth.so
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded device plugin: /usr/lib64/NetworkManager/libnm-device-plugin-adsl.so
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded device plugin: /usr/lib64/NetworkManager/libnm-device-plugin-team.so
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded device plugin: /usr/lib64/NetworkManager/libnm-device-plugin-wwan.so
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Loaded device plugin: /usr/lib64/NetworkManager/libnm-device-plugin-wifi.so
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  WiFi enabled by radio killswitch; enabled by state file
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  WWAN enabled by radio killswitch; enabled by state file
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  WiMAX enabled by radio killswitch; enabled by state file
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Networking is enabled by state file
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (lo): link connected
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (lo): carrier is ON
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (lo): new Generic device (driver: 'unknown' ifindex: 1)
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (lo): exported as /org/freedesktop/NetworkManager/Devices/0
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): carrier is OFF
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): new Ethernet device (driver: 'vmxnet3' ifindex: 2)
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): exported as /org/freedesktop/NetworkManager/Devices/1
+Feb 15 07:36:54 localhost systemd: Started Network Manager.
+Feb 15 07:36:54 localhost systemd: Starting LSB: Bring up/down networking...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): device state change: unmanaged -> unavailable (reason 'managed') [10 20 2]
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): link connected
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): preparing device
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): device state change: unavailable -> disconnected (reason 'none') [20 30 0]
+Feb 15 07:36:54 localhost kernel: IPv6: ADDRCONF(NETDEV_UP): eno16777984: link is not ready
+Feb 15 07:36:54 localhost kernel: vmxnet3 0000:03:00.0 eno16777984: intr type 3, mode 0, 3 vectors allocated
+Feb 15 07:36:54 localhost kernel: vmxnet3 0000:03:00.0 eno16777984: NIC Link is Up 10000 Mbps
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  Auto-activating connection 'eno16777984'.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  ModemManager available in the bus
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: starting connection 'eno16777984'
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 1 of 5 (Device Prepare) scheduled...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 1 of 5 (Device Prepare) started...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): device state change: disconnected -> prepare (reason 'none') [30 40 0]
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  NetworkManager state is now CONNECTING
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 2 of 5 (Device Configure) scheduled...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 1 of 5 (Device Prepare) complete.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 2 of 5 (Device Configure) starting...
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): device state change: prepare -> config (reason 'none') [40 50 0]
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 2 of 5 (Device Configure) successful.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 2 of 5 (Device Configure) complete.
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  parsing /etc/sysconfig/network-scripts/ifcfg-lo ...
+Feb 15 07:36:54 localhost network: Bringing up loopback interface:  Could not load file '/etc/sysconfig/network-scripts/ifcfg-lo'
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  parsing /etc/sysconfig/network-scripts/ifcfg-lo ...
+Feb 15 07:36:54 localhost network: Could not load file '/etc/sysconfig/network-scripts/ifcfg-lo'
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  parsing /etc/sysconfig/network-scripts/ifcfg-lo ...
+Feb 15 07:36:54 localhost network: Could not load file '/etc/sysconfig/network-scripts/ifcfg-lo'
+Feb 15 07:36:54 localhost NetworkManager[749]: <info>  parsing /etc/sysconfig/network-scripts/ifcfg-lo ...
+Feb 15 07:36:54 localhost network: Could not load file '/etc/sysconfig/network-scripts/ifcfg-lo'
+Feb 15 07:36:54 localhost network: [  OK  ]
+Feb 15 07:36:54 localhost network: Bringing up interface eno16777984:  [  OK  ]
+Feb 15 07:36:54 localhost systemd: Started LSB: Bring up/down networking.
+Feb 15 07:36:54 localhost systemd: Starting Network.
+Feb 15 07:36:54 localhost systemd: Reached target Network.
+Feb 15 07:36:54 localhost systemd: Starting Logout off all iSCSI sessions on shutdown...
+Feb 15 07:36:54 localhost systemd: Started Login and scanning of iSCSI devices.
+Feb 15 07:36:54 localhost systemd: Starting Virtualization daemon...
+Feb 15 07:36:54 localhost systemd: Starting Postfix Mail Transport Agent...
+Feb 15 07:36:54 localhost systemd: Starting OpenSSH server daemon...
+Feb 15 07:36:54 localhost systemd: Started OpenSSH server daemon.
+Feb 15 07:36:54 localhost systemd: Started Logout off all iSCSI sessions on shutdown.
+Feb 15 07:36:54 localhost systemd: Starting Remote File Systems (Pre).
+Feb 15 07:36:54 localhost systemd: Reached target Remote File Systems (Pre).
+Feb 15 07:36:54 localhost systemd: Starting Remote File Systems.
+Feb 15 07:36:54 localhost systemd: Reached target Remote File Systems.
+Feb 15 07:36:54 localhost systemd: Starting Trigger Flushing of Journal to Persistent Storage...
+Feb 15 07:36:54 localhost systemd: Starting Crash recovery kernel arming...
+Feb 15 07:36:54 localhost journal: Runtime journal is using 8.0M (max 391.2M, leaving 586.8M of free 3.8G, current limit 391.2M).
+Feb 15 07:36:54 localhost systemd: Started Trigger Flushing of Journal to Persistent Storage.
+Feb 15 07:36:54 localhost systemd: Starting Permit User Sessions...
+Feb 15 07:36:54 localhost systemd: Started Permit User Sessions.
+Feb 15 07:36:54 localhost systemd: Starting Command Scheduler...
+Feb 15 07:36:54 localhost systemd: Started Command Scheduler.
+Feb 15 07:36:54 localhost systemd: Starting Job spooling tools...
+Feb 15 07:36:54 localhost systemd: Started Job spooling tools.
+Feb 15 07:36:54 localhost systemd: Starting Wait for Plymouth Boot Screen to Quit...
+Feb 15 07:36:54 localhost systemd: Starting GNOME Display Manager...
+Feb 15 07:36:54 localhost systemd: Started GNOME Display Manager.
+Feb 15 07:36:54 localhost journal: libvirt version: 1.2.8, package: 16.el7_1.3 (CentOS BuildSystem <http://bugs.centos.org>, 2015-05-12-20:12:58, worker1.bsys.centos.org)
+Feb 15 07:36:54 localhost journal: Module /usr/lib64/libvirt/connection-driver/libvirt_driver_lxc.so not accessible
+Feb 15 07:36:54 localhost dbus-daemon: dbus[625]: [system] Rejected send message, 1 matched rules; type="method_call", sender=":1.16" (uid=0 pid=1169 comm="/usr/sbin/gdm ") interface="org.freedesktop.DBus.Properties" member="GetAll" error name="(unset)" requested_reply="0" destination=":1.17" (uid=0 pid=1191 comm="/usr/libexec/gdm-simple-slave --display-id /org/gn")
+Feb 15 07:36:54 localhost dbus[625]: [system] Rejected send message, 1 matched rules; type="method_call", sender=":1.16" (uid=0 pid=1169 comm="/usr/sbin/gdm ") interface="org.freedesktop.DBus.Properties" member="GetAll" error name="(unset)" requested_reply="0" destination=":1.17" (uid=0 pid=1191 comm="/usr/libexec/gdm-simple-slave --display-id /org/gn")
+Feb 15 07:36:55 localhost systemd: Started Virtualization daemon.
+Feb 15 07:36:55 localhost systemd: Started Postfix Mail Transport Agent.
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 3 of 5 (IP Configure Start) scheduled.
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 3 of 5 (IP Configure Start) started...
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): device state change: config -> ip-config (reason 'none') [50 70 0]
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  Activation (eno16777984) Beginning DHCPv4 transaction (timeout in 45 seconds)
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  dhclient started with pid 1614
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 3 of 5 (IP Configure Start) complete.
+Feb 15 07:36:55 localhost dhclient[1614]: DHCPREQUEST on eno16777984 to 255.255.255.255 port 67 (xid=0x7ade4261)
+Feb 15 07:36:55 localhost dhclient[1614]: DHCPACK from 172.17.1.32 (xid=0x7ade4261)
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    address 172.17.1.233
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    plen 22 (255.255.252.0)
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    gateway 172.17.0.220
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    server identifier 172.17.1.32
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    lease time 15552000
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    nameserver '172.17.0.10'
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    nameserver '172.17.1.32'
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    nameserver '172.17.0.19'
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>    domain name 'naol.com'
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): DHCPv4 state changed unknown -> bound
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 5 of 5 (IPv4 Configure Commit) scheduled...
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 5 of 5 (IPv4 Commit) started...
+Feb 15 07:36:55 localhost NetworkManager[749]: _nl_get_vtable: assertion 'vtable.handle' failed
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): device state change: ip-config -> ip-check (reason 'none') [70 80 0]
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 5 of 5 (IPv4 Commit) complete.
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): device state change: ip-check -> secondaries (reason 'none') [80 90 0]
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): device state change: secondaries -> activated (reason 'none') [90 100 0]
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  NetworkManager state is now CONNECTED_LOCAL
+Feb 15 07:36:55 localhost avahi-daemon[609]: Joining mDNS multicast group on interface eno16777984.IPv4 with address 172.17.1.233.
+Feb 15 07:36:55 localhost avahi-daemon[609]: New relevant interface eno16777984.IPv4 for mDNS.
+Feb 15 07:36:55 localhost avahi-daemon[609]: Registering new address record for 172.17.1.233 on eno16777984.IPv4.
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  NetworkManager state is now CONNECTED_GLOBAL
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  Policy set 'eno16777984' (eno16777984) as default for IPv4 routing and DNS.
+Feb 15 07:36:55 localhost NetworkManager[749]: <info>  (eno16777984): Activation: successful, device activated.
+Feb 15 07:36:55 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.nm_dispatcher' unit='dbus-org.freedesktop.nm-dispatcher.service'
+Feb 15 07:36:55 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.nm_dispatcher' unit='dbus-org.freedesktop.nm-dispatcher.service'
+Feb 15 07:36:55 localhost dhclient[1614]: bound to 172.17.1.233 -- renewal in 7014437 seconds.
+Feb 15 07:36:55 localhost systemd: Starting Network Manager Script Dispatcher Service...
+Feb 15 07:36:55 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.nm_dispatcher'
+Feb 15 07:36:55 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.nm_dispatcher'
+Feb 15 07:36:55 localhost nm-dispatcher: Dispatching action 'up' for eno16777984
+Feb 15 07:36:55 localhost systemd: Started Wait for Plymouth Boot Screen to Quit.
+Feb 15 07:36:55 localhost systemd: Started Network Manager Script Dispatcher Service.
+Feb 15 07:36:55 localhost systemd: Unit iscsi.service cannot be reloaded because it is inactive.
+Feb 15 07:36:55 localhost chronyd[621]: Backward time jump detected! (correction 25.4 +- -22367.3 seconds)
+Feb 15 07:36:56 localhost systemd: Starting user-1000.slice.
+Feb 15 07:36:56 localhost systemd: Created slice user-1000.slice.
+Feb 15 07:36:56 localhost systemd: Starting Session 1 of user benchmark.
+Feb 15 07:36:56 localhost systemd: Started Session 1 of user benchmark.
+Feb 15 07:36:56 localhost systemd-logind: New session 1 of user benchmark.
+Feb 15 07:36:56 localhost systemd-logind: Linked /tmp/.X11-unix/X0 to /run/user/1000/X11-display.
+Feb 15 07:36:56 localhost ModemManager[606]: <warn>  Couldn't find support for device at '/sys/devices/pci0000:00/0000:00:15.0/0000:03:00.0': not supported by any plugin
+Feb 15 07:36:56 localhost kernel: fuse init (API version 7.22)
+Feb 15 07:36:56 localhost systemd: Mounting FUSE Control File System...
+Feb 15 07:36:56 localhost systemd: Mounted FUSE Control File System.
+Feb 15 07:36:56 localhost kdumpctl: kexec: loaded kdump kernel
+Feb 15 07:36:56 localhost kdumpctl: Starting kdump: [OK]
+Feb 15 07:36:56 localhost systemd: Started Crash recovery kernel arming.
+Feb 15 07:36:56 localhost systemd: Started Harvest vmcores for ABRT.
+Feb 15 07:36:56 localhost systemd: Starting Multi-User System.
+Feb 15 07:36:56 localhost systemd: Reached target Multi-User System.
+Feb 15 07:36:56 localhost systemd: Starting Graphical Interface.
+Feb 15 07:36:56 localhost systemd: Reached target Graphical Interface.
+Feb 15 07:36:56 localhost systemd: Starting Update UTMP about System Runlevel Changes...
+Feb 15 07:36:56 localhost systemd: Started Stop Read-Ahead Data Collection 10s After Completed Startup.
+Feb 15 07:36:56 localhost gnome-session: GNOME_KEYRING_CONTROL=/run/user/1000/keyring-Ej3Yec
+Feb 15 07:36:56 localhost gnome-session: GNOME_KEYRING_PID=2649
+Feb 15 07:36:56 localhost systemd: Started Update UTMP about System Runlevel Changes.
+Feb 15 07:36:56 localhost systemd: Startup finished in 781ms (kernel) + 1.277s (initrd) + 5.596s (userspace) = 7.655s.
+Feb 15 07:36:56 localhost gnome-session: GNOME_KEYRING_CONTROL=/run/user/1000/keyring-Ej3Yec
+Feb 15 07:36:56 localhost gnome-session: GPG_AGENT_INFO=/run/user/1000/keyring-Ej3Yec/gpg:0:1
+Feb 15 07:36:56 localhost gnome-session: SSH_AUTH_SOCK=/run/user/1000/keyring-Ej3Yec/ssh
+Feb 15 07:36:56 localhost gnome-session: GNOME_KEYRING_CONTROL=/run/user/1000/keyring-Ej3Yec
+Feb 15 07:36:56 localhost gnome-session: GPG_AGENT_INFO=/run/user/1000/keyring-Ej3Yec/gpg:0:1
+Feb 15 07:36:56 localhost gnome-session: GNOME_KEYRING_CONTROL=/run/user/1000/keyring-Ej3Yec
+Feb 15 07:36:56 localhost gnome-session: GPG_AGENT_INFO=/run/user/1000/keyring-Ej3Yec/gpg:0:1
+Feb 15 07:36:56 localhost rtkit-daemon[624]: Successfully made thread 2659 of process 2659 (/usr/bin/pulseaudio) owned by '1000' high priority at nice level -11.
+Feb 15 07:36:56 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.UPower' unit='upower.service'
+Feb 15 07:36:56 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.UPower' unit='upower.service'
+Feb 15 07:36:56 localhost systemd: Starting Daemon for power management...
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.bluez' unit='dbus-org.bluez.service'
+Feb 15 07:36:57 localhost dbus[625]: [system] Activating via systemd: service name='org.bluez' unit='dbus-org.bluez.service'
+Feb 15 07:36:57 localhost systemd: Starting Bluetooth service...
+Feb 15 07:36:57 localhost bluetoothd: bluetoothd[2665]: Bluetooth daemon 4.101
+Feb 15 07:36:57 localhost bluetoothd[2665]: Bluetooth daemon 4.101
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.bluez'
+Feb 15 07:36:57 localhost dbus[625]: [system] Successfully activated service 'org.bluez'
+Feb 15 07:36:57 localhost systemd: Started Bluetooth service.
+Feb 15 07:36:57 localhost bluetoothd: bluetoothd[2665]: Starting SDP server
+Feb 15 07:36:57 localhost bluetoothd[2665]: Starting SDP server
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.UPower'
+Feb 15 07:36:57 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.UPower'
+Feb 15 07:36:57 localhost systemd: Started Daemon for power management.
+Feb 15 07:36:57 localhost kernel: Bluetooth: Core ver 2.16
+Feb 15 07:36:57 localhost kernel: NET: Registered protocol family 31
+Feb 15 07:36:57 localhost kernel: Bluetooth: HCI device and connection manager initialized
+Feb 15 07:36:57 localhost kernel: Bluetooth: HCI socket layer initialized
+Feb 15 07:36:57 localhost kernel: Bluetooth: L2CAP socket layer initialized
+Feb 15 07:36:57 localhost kernel: Bluetooth: SCO socket layer initialized
+Feb 15 07:36:57 localhost bluetoothd: bluetoothd[2665]: Parsing /etc/bluetooth/input.conf failed: No such file or directory
+Feb 15 07:36:57 localhost bluetoothd[2665]: Parsing /etc/bluetooth/input.conf failed: No such file or directory
+Feb 15 07:36:57 localhost kernel: Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+Feb 15 07:36:57 localhost kernel: Bluetooth: BNEP filters: protocol multicast
+Feb 15 07:36:57 localhost kernel: Bluetooth: BNEP socket layer initialized
+Feb 15 07:36:57 localhost bluetoothd: bluetoothd[2665]: Bluetooth Management interface initialized
+Feb 15 07:36:57 localhost bluetoothd[2665]: Bluetooth Management interface initialized
+Feb 15 07:36:57 localhost NetworkManager[749]: <info>  use BlueZ version 4
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.UDisks2' unit='udisks2.service'
+Feb 15 07:36:57 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.UDisks2' unit='udisks2.service'
+Feb 15 07:36:57 localhost systemd: Starting Disk Manager...
+Feb 15 07:36:57 localhost udisksd[2733]: udisks daemon version 2.1.2 starting
+Feb 15 07:36:57 localhost avahi-daemon[609]: Registering new address record for fe80::250:56ff:fe9c:88c2 on eno16777984.*.
+Feb 15 07:36:57 localhost udisksd[2733]: Error probing device: Error sending ATA command IDENTIFY PACKET DEVICE to /dev/sr0: ATA command failed: error=0x01 count=0x02 status=0x50 (g-io-error-quark, 0)
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.UDisks2'
+Feb 15 07:36:57 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.UDisks2'
+Feb 15 07:36:57 localhost systemd: Started Disk Manager.
+Feb 15 07:36:57 localhost udisksd[2733]: Acquired the name org.freedesktop.UDisks2 on the system message bus
+Feb 15 07:36:57 localhost goa[2754]: goa-daemon version 3.8.5 starting [main.c:113, main()]
+Feb 15 07:36:57 localhost goa[2761]: GoaKerberosIdentityManager: Using polling for change notification for credential cache type 'KEYRING' [goakerberosidentitymanager.c:1394, monitor_credentials_cache()]
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.ColorManager' unit='colord.service'
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Activating service name='org.freedesktop.PackageKit' (using servicehelper)
+Feb 15 07:36:57 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.ColorManager' unit='colord.service'
+Feb 15 07:36:57 localhost dbus[625]: [system] Activating service name='org.freedesktop.PackageKit' (using servicehelper)
+Feb 15 07:36:57 localhost systemd: Starting Manage, Install and Generate Color Profiles...
+Feb 15 07:36:57 localhost colord: Using config file /etc/colord.conf
+Feb 15 07:36:57 localhost colord: Using mapping database file /var/lib/colord/mapping.db
+Feb 15 07:36:57 localhost colord: Using device database file /var/lib/colord/storage.db
+Feb 15 07:36:57 localhost colord: loaded plugin libcd_plugin_camera.so
+Feb 15 07:36:57 localhost colord: loaded plugin libcd_plugin_scanner.so
+Feb 15 07:36:57 localhost colord: Daemon ready for requests
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.ColorManager'
+Feb 15 07:36:57 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.ColorManager'
+Feb 15 07:36:57 localhost systemd: Started Manage, Install and Generate Color Profiles.
+Feb 15 07:36:57 localhost colord: Profile added: icc-021ec903471f953c28c57ccde43f9134
+Feb 15 07:36:57 localhost colord: Profile added: icc-7e1e684edc9a0671f5305d656d8cb8c9
+Feb 15 07:36:57 localhost colord: Profile added: icc-0f6451e33e7342d0f90bb960912bb812
+Feb 15 07:36:57 localhost colord: Profile added: icc-8f465237bb45ee1d16fdbd6b4038c719
+Feb 15 07:36:57 localhost colord: Profile added: icc-8daff74b7142df23f76b3d5ef126bbf9
+Feb 15 07:36:57 localhost colord: Profile added: icc-f16a3fe7a0d2f471188cf45202ae43ac
+Feb 15 07:36:57 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Feb 15 07:36:57 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Feb 15 07:36:57 localhost systemd: Starting CUPS Printing Service...
+Feb 15 07:36:57 localhost systemd: Started CUPS Printing Service.
+Feb 15 07:36:58 localhost gnome-session: (gnome-settings-daemon:2635): keyboard-plugin-WARNING **: Unhandled settings change, key 'input-sources-switcher'
+Feb 15 07:36:58 localhost gnome-session: (gnome-settings-daemon:2635): keyboard-plugin-WARNING **: Unhandled settings change, key 'bell-custom-file'
+Feb 15 07:36:58 localhost gnome-session: (gnome-settings-daemon:2635): keyboard-plugin-WARNING **: Unhandled settings change, key 'input-sources-switcher'
+Feb 15 07:36:58 localhost gnome-session: (gnome-settings-daemon:2635): keyboard-plugin-WARNING **: Unhandled settings change, key 'bell-custom-file'
+Feb 15 07:36:58 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.locale1' unit='dbus-org.freedesktop.locale1.service'
+Feb 15 07:36:58 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.locale1' unit='dbus-org.freedesktop.locale1.service'
+Feb 15 07:36:58 localhost systemd: Starting Locale Service...
+Feb 15 07:36:58 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.locale1'
+Feb 15 07:36:58 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.locale1'
+Feb 15 07:36:58 localhost systemd: Started Locale Service.
+Feb 15 07:36:58 localhost gnome-session: (gnome-settings-daemon:2635): color-plugin-WARNING **: failed to get edid: unable to get EDID for output
+Feb 15 07:36:58 localhost colord: Device added: xrandr-Virtual1
+Feb 15 07:36:58 localhost gnome-session: (gnome-settings-daemon:2635): color-plugin-WARNING **: unable to get EDID for xrandr-Virtual1: unable to get EDID for output
+Feb 15 07:36:58 localhost gnome-session: Window manager warning: Log level 16: Attempt to add property Gjs_MonitorConstraint::primary after class was initialised
+Feb 15 07:36:58 localhost gnome-session: Window manager warning: Log level 16: Attempt to add property Gjs_MonitorConstraint::index after class was initialised
+Feb 15 07:36:59 localhost NetworkManager[749]: <info>  startup complete
+Feb 15 07:36:59 localhost gnome-session: JS LOG: GNOME Shell started at Mon Feb 15 2016 07:36:59 GMT-0700 (MST)
+Feb 15 07:37:00 localhost gnome-session: vmware-user: could not open /proc/fs/vmblock/dev
+Feb 15 07:37:00 localhost vmusr[3001]: [ warning] [GLib-GObject] Attempt to add property ToolsCoreService::tcs-app-ctx after class was initialised
+Feb 15 07:37:00 localhost vmusr[3001]: [ warning] [GLib-GObject] Attempt to add property ToolsCoreService::tcs-prop-thread-pool after class was initialised
+Feb 15 07:37:00 localhost gnome-session: Tracker-Message: Importing config file to GSettings
+Feb 15 07:37:00 localhost gnome-session: Tracker-Message: Importing config file to GSettings
+Feb 15 07:37:00 localhost gnome-session: (tracker-store:3009): Tracker-CRITICAL **: D-Bus service name:'org.freedesktop.Tracker1' is already taken, perhaps the daemon is already running?
+Feb 15 07:37:00 localhost gnome-session: Entering running state
+Feb 15 07:37:00 localhost gnome-session: Tracker-Message: Importing config file to GSettings
+Feb 15 07:37:00 localhost gnome-session: Failed to play sound: File or data not found
+Feb 15 07:37:00 localhost vmusr[3001]: [ warning] [Gtk] gtk_disable_setlocale() must be called before gtk_init()
+Feb 15 07:37:00 localhost gnome-session: Window manager warning: Log level 16: STACK_OP_ADD: window 0x1e00001 already in stack
+Feb 15 07:37:00 localhost gnome-session: Window manager warning: Log level 16: STACK_OP_ADD: window 0x1e00001 already in stack
+Feb 15 07:37:01 localhost gnome-session: GDBus.Error:org.gtk.GDBus.UnmappedGError.Quark._imsettings_2derror_2dquark.Code5: Current desktop isn't targeted by IMSettings.
+Feb 15 07:37:02 localhost dbus-daemon: dbus[625]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 07:37:02 localhost dbus[625]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 07:37:02 localhost systemd: Starting Hostname Service...
+Feb 15 07:37:02 localhost dbus-daemon: dbus[625]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 07:37:02 localhost dbus[625]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 07:37:02 localhost systemd: Started Hostname Service.
+Feb 15 13:50:17 localhost chronyd[621]: Selected source 216.152.240.220
+Feb 15 13:50:17 localhost chronyd[621]: System clock wrong by 22394.555327 seconds, adjustment started
+Feb 15 13:50:17 localhost chronyd[621]: System clock was stepped by 22394.555 seconds
+Feb 15 13:50:17 localhost systemd: Time has been changed
+Feb 15 13:50:42 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 4 of 5 (IPv6 Configure Timeout) scheduled...
+Feb 15 13:50:42 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 4 of 5 (IPv6 Configure Timeout) started...
+Feb 15 13:50:42 localhost NetworkManager[749]: <info>  (eno16777984): Activation: Stage 4 of 5 (IPv6 Configure Timeout) complete.
+Feb 15 13:52:07 localhost systemd: Stopping Session 1 of user benchmark.
+Feb 15 13:52:07 localhost systemd: Stopped Session 1 of user benchmark.
+Feb 15 13:52:07 localhost systemd: Stopping user-1000.slice.
+Feb 15 13:52:07 localhost systemd: Removed slice user-1000.slice.
+Feb 15 13:52:07 localhost systemd: Stopping LVM2 PV scan on device 8:2...
+Feb 15 13:52:07 localhost systemd: Stopping Manage Sound Card State (restore and store)...
+Feb 15 13:52:07 localhost systemd: Stopping system-getty.slice.
+Feb 15 13:52:07 localhost systemd: Removed slice system-getty.slice.
+Feb 15 13:52:07 localhost systemd: Stopping Dump dmesg to /var/log/dmesg...
+Feb 15 13:52:07 localhost systemd: Stopped Dump dmesg to /var/log/dmesg.
+Feb 15 13:52:07 localhost systemd: Stopping CUPS Printing Service...
+Feb 15 13:52:07 localhost systemd: Stopping Graphical Interface.
+Feb 15 13:52:07 localhost gnome-session: Received signal:15->'Terminated'
+Feb 15 13:52:07 localhost gnome-keyring-daemon[2649]: g_dbus_connection_real_closed: Remote peer vanished with error: Underlying GIOStream returned 0 bytes on an async read (g-io-error-quark, 0). Exiting.
+Feb 15 13:52:07 localhost colord: device removed: xrandr-Virtual1
+Feb 15 13:52:07 localhost systemd: Stopped target Graphical Interface.
+Feb 15 13:52:07 localhost systemd: Stopping Multi-User System.
+Feb 15 13:52:07 localhost systemd: Stopped target Multi-User System.
+Feb 15 13:52:07 localhost systemd: Stopping Command Scheduler...
+Feb 15 13:52:07 localhost systemd: Stopping libstoragemgmt plug-in server daemon...
+Feb 15 13:52:07 localhost systemd: Stopping Kernel Samepage Merging (KSM) Tuning Daemon...
+Feb 15 13:52:07 localhost systemd: Stopping Service for virtual machines hosted on VMware...
+Feb 15 13:52:07 localhost systemd: Stopping NTP client/server...
+Feb 15 13:52:07 localhost systemd: Stopping ABRT kernel log watcher...
+Feb 15 13:52:07 localhost systemd: Stopping ABRT Xorg log watcher...
+Feb 15 13:52:07 localhost systemd: Stopping Install ABRT coredump hook...
+Feb 15 13:52:07 localhost chronyd[621]: chronyd exiting
+Feb 15 13:52:08 localhost rsyslogd: [origin software="rsyslogd" swVersion="7.4.7" x-pid="604" x-info="http://www.rsyslog.com"] exiting on signal 15.
+Feb 15 07:39:29 localhost rsyslogd: [origin software="rsyslogd" swVersion="7.4.7" x-pid="604" x-info="http://www.rsyslog.com"] start
+Feb 15 13:52:51 localhost chronyd[614]: Selected source 108.61.56.35
+Feb 15 13:52:51 localhost chronyd[614]: System clock wrong by 22394.597403 seconds, adjustment started
+Feb 15 13:52:51 localhost chronyd[614]: System clock was stepped by 22394.597 seconds
+Feb 15 13:52:51 localhost systemd: Time has been changed
+Feb 15 13:52:52 localhost dbus-daemon: dbus[622]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 13:52:52 localhost dbus[622]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 13:52:52 localhost systemd: Starting Hostname Service...
+Feb 15 13:52:52 localhost dbus-daemon: dbus[622]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 13:52:52 localhost dbus[622]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 13:52:52 localhost systemd: Started Hostname Service.
+Feb 15 13:52:53 localhost chronyd[614]: Selected source 208.75.89.4
+Feb 15 07:40:21 localhost rsyslogd: [origin software="rsyslogd" swVersion="7.4.7" x-pid="603" x-info="http://www.rsyslog.com"] start
+Feb 15 13:53:43 localhost chronyd[612]: Selected source 108.61.56.35
+Feb 15 13:53:43 localhost chronyd[612]: System clock wrong by 22394.570624 seconds, adjustment started
+Feb 15 13:53:43 localhost chronyd[612]: System clock was stepped by 22394.571 seconds
+Feb 15 13:53:43 localhost systemd: Time has been changed
+Feb 15 13:53:44 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 13:53:44 localhost dbus[626]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 13:53:44 localhost systemd: Starting Hostname Service...
+Feb 15 13:53:44 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 13:53:44 localhost dbus[626]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 13:53:44 localhost systemd: Started Hostname Service.
+Feb 15 13:53:46 localhost chronyd[612]: Selected source 208.75.89.4
+Feb 15 13:54:10 localhost NetworkManager[745]: <info>  (eno16777984): Activation: Stage 4 of 5 (IPv6 Configure Timeout) scheduled...
+Feb 15 13:54:10 localhost NetworkManager[745]: <info>  (eno16777984): Activation: Stage 4 of 5 (IPv6 Configure Timeout) started...
+Feb 15 13:54:10 localhost NetworkManager[745]: <info>  (eno16777984): Activation: Stage 4 of 5 (IPv6 Configure Timeout) complete.
+Feb 15 13:55:58 localhost gnome-session: (gnome-settings-daemon:2632): color-plugin-WARNING **: unable to get EDID for xrandr-Virtual1: unable to get EDID for output
+Feb 15 13:57:03 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 13:57:03 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 13:57:03 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 13:57:03 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 13:57:03 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 13:57:03 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 13:57:03 localhost fprintd: ** (fprintd:3232): WARNING **: fprint init failed with error -99
+Feb 15 13:57:03 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 13:57:03 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 14:00:01 localhost systemd: Starting user-0.slice.
+Feb 15 14:00:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:00:01 localhost systemd: Starting Session 2 of user root.
+Feb 15 14:00:01 localhost systemd: Started Session 2 of user root.
+Feb 15 14:01:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:01:01 localhost systemd: Starting Session 3 of user root.
+Feb 15 14:01:01 localhost systemd: Started Session 3 of user root.
+Feb 15 14:08:32 localhost systemd: Starting Cleanup of Temporary Directories...
+Feb 15 14:08:32 localhost systemd: Started Cleanup of Temporary Directories.
+Feb 15 14:10:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:10:01 localhost systemd: Starting Session 4 of user root.
+Feb 15 14:10:01 localhost systemd: Started Session 4 of user root.
+Feb 15 14:20:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:20:01 localhost systemd: Starting Session 5 of user root.
+Feb 15 14:20:01 localhost systemd: Started Session 5 of user root.
+Feb 15 14:27:45 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 14:27:45 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 14:27:45 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 14:27:45 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 14:27:45 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 14:27:45 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 14:27:45 localhost fprintd: ** (fprintd:3882): WARNING **: fprint init failed with error -99
+Feb 15 14:27:45 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 14:27:45 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 14:27:45 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 14:27:45 localhost dbus[626]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 14:27:45 localhost systemd: Starting Hostname Service...
+Feb 15 14:27:45 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 14:27:45 localhost dbus[626]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 14:27:45 localhost systemd: Started Hostname Service.
+Feb 15 14:28:03 localhost dbus-daemon: dbus[626]: [system] Activating service name='org.freedesktop.PackageKit' (using servicehelper)
+Feb 15 14:28:03 localhost dbus[626]: [system] Activating service name='org.freedesktop.PackageKit' (using servicehelper)
+Feb 15 14:28:03 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Feb 15 14:28:03 localhost dbus[626]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Feb 15 14:28:13 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 14:28:13 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 14:28:13 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 14:28:13 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 14:28:13 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 14:28:13 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 14:28:13 localhost fprintd: ** (fprintd:3923): WARNING **: fprint init failed with error -99
+Feb 15 14:28:13 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 14:28:13 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 14:29:26 localhost kernel: EXT4-fs (sdb): mounted filesystem with ordered data mode. Opts: (null)
+Feb 15 14:29:27 localhost kernel: sdb: WRITE SAME failed. Manually zeroing.
+Feb 15 14:30:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:30:01 localhost systemd: Starting Session 6 of user root.
+Feb 15 14:30:01 localhost systemd: Started Session 6 of user root.
+Feb 15 14:40:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:40:01 localhost systemd: Starting Session 7 of user root.
+Feb 15 14:40:01 localhost systemd: Started Session 7 of user root.
+Feb 15 14:50:01 localhost systemd: Created slice user-0.slice.
+Feb 15 14:50:01 localhost systemd: Starting Session 8 of user root.
+Feb 15 14:50:01 localhost systemd: Started Session 8 of user root.
+Feb 15 14:53:50 localhost dbus-daemon: dbus[626]: [system] Activating service name='org.freedesktop.PackageKit' (using servicehelper)
+Feb 15 14:53:50 localhost dbus[626]: [system] Activating service name='org.freedesktop.PackageKit' (using servicehelper)
+Feb 15 14:53:50 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Feb 15 14:53:50 localhost dbus[626]: [system] Successfully activated service 'org.freedesktop.PackageKit'
+Feb 15 14:58:22 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 14:58:22 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 14:58:22 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 14:58:22 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 14:58:22 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 14:58:22 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 14:58:22 localhost fprintd: ** (fprintd:5450): WARNING **: fprint init failed with error -99
+Feb 15 14:58:22 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 14:58:22 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 15:00:01 localhost systemd: Created slice user-0.slice.
+Feb 15 15:00:01 localhost systemd: Starting Session 9 of user root.
+Feb 15 15:00:01 localhost systemd: Started Session 9 of user root.
+Feb 15 15:01:01 localhost systemd: Created slice user-0.slice.
+Feb 15 15:01:01 localhost systemd: Starting Session 10 of user root.
+Feb 15 15:01:01 localhost systemd: Started Session 10 of user root.
+Feb 15 15:10:01 localhost systemd: Created slice user-0.slice.
+Feb 15 15:10:01 localhost systemd: Starting Session 11 of user root.
+Feb 15 15:10:01 localhost systemd: Started Session 11 of user root.
+Feb 15 15:18:34 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:18:34 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:18:34 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 15:18:34 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:18:34 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:18:34 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 15:18:34 localhost fprintd: ** (fprintd:7251): WARNING **: fprint init failed with error -99
+Feb 15 15:18:34 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 15:18:34 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 15:20:01 localhost systemd: Created slice user-0.slice.
+Feb 15 15:20:01 localhost systemd: Starting Session 12 of user root.
+Feb 15 15:20:01 localhost systemd: Started Session 12 of user root.
+Feb 15 15:23:45 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 15:23:45 localhost dbus[626]: [system] Activating via systemd: service name='org.freedesktop.hostname1' unit='dbus-org.freedesktop.hostname1.service'
+Feb 15 15:23:45 localhost systemd: Starting Hostname Service...
+Feb 15 15:23:45 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 15:23:45 localhost dbus[626]: [system] Successfully activated service 'org.freedesktop.hostname1'
+Feb 15 15:23:45 localhost systemd: Started Hostname Service.
+Feb 15 15:24:14 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:24:14 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:24:14 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 15:24:14 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:24:14 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:24:14 localhost fprintd: ** (fprintd:7622): WARNING **: fprint init failed with error -99
+Feb 15 15:24:14 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 15:24:14 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 15:24:14 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 15:24:14 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:24:14 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:24:14 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 15:24:14 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:24:14 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:24:15 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 15:24:15 localhost fprintd: ** (fprintd:7626): WARNING **: fprint init failed with error -99
+Feb 15 15:24:15 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 15:24:15 localhost systemd: Unit fprintd.service entered failed state.
+Feb 15 15:30:01 localhost systemd: Created slice user-0.slice.
+Feb 15 15:30:01 localhost systemd: Starting Session 13 of user root.
+Feb 15 15:30:01 localhost systemd: Started Session 13 of user root.
+Feb 15 15:31:54 localhost dbus-daemon: dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:31:54 localhost dbus[626]: [system] Activating via systemd: service name='net.reactivated.Fprint' unit='fprintd.service'
+Feb 15 15:31:54 localhost systemd: Starting Fingerprint Authentication Daemon...
+Feb 15 15:31:54 localhost dbus-daemon: dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:31:54 localhost dbus[626]: [system] Successfully activated service 'net.reactivated.Fprint'
+Feb 15 15:31:54 localhost systemd: Started Fingerprint Authentication Daemon.
+Feb 15 15:31:54 localhost fprintd: ** (fprintd:7820): WARNING **: fprint init failed with error -99
+Feb 15 15:31:54 localhost systemd: fprintd.service: main process exited, code=exited, status=157/n/a
+Feb 15 15:31:54 localhost systemd: Unit fprintd.service entered failed state.
