@@ -261,7 +261,7 @@ def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
     try:
         with open(nj_path, "w") as f:
             # Test label, timeout/duration.
-            f.write("{}\n".format(identifier.replace(":", "_")))
+            f.write("{}:\n".format(identifier.replace(":", "_")))
             f.write("-generaltimeout: {timeout}\n".format(timeout=timeout))
             # Target specs.
             for t in targets:
