@@ -19,8 +19,9 @@ DEFAULT_TIMEOUT = 0
 ARCHIVE_DIR_FORMAT = "__{content}_{testID}__"
 ARCHIVE_DIR_REGEX = ARCHIVE_DIR_FORMAT.format(content="\w+", testID="\d+")
 ID_SEP = "_##"
-DEFAULT_SUCCESS_MULTIPLIER = 1.5
-DEFAULT_FAILURE_MULTIPLIER = 0.75
+DEFAULT_SUCCESS_MULTIPLIER = 5.0
+DEFAULT_FAILURE_MULTIPLIER = 0.3
+DEFAULT_CONSECUTIVE_FAILURES = 2
 
 # Get CLI arguments.
 def getArgs():
@@ -53,6 +54,10 @@ def getArgs():
         default=DEFAULT_FAILURE_MULTIPLIER,
         help="override IO rate multiplier when target is above target latency (default {})"
         .format(DEFAULT_FAILURE_MULTIPLIER))
+    parser.add_argument("--consecutive-failures", type=int,
+        default=DEFAULT_CONSECUTIVE_FAILURES,
+        help="terminate after n consecutive failures (default {})"
+        .format(DEFAULT_CONSECUTIVE_FAILURES))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
 
@@ -282,9 +287,31 @@ def startNetJobs(njconfig, verbose=False):
 
 # Calculate the new IO rate based on the given config file and the allPassed status.
 def calculateNewIORate(configFile, args, allPassed):
-    oldRate = # TK get old rate TKTKTKTKTK
-    multiplier = args.success_multiplier if allPassed else args.failure_multiplier
-    return oldRate * multiplier 
+    rate = getOldIORate
+    rate *= args.success_multiplier if allPassed else args.failure_multiplier
+    return rate
+
+# Get the old IO rate based on the given config file.
+def getOldIORate(configFile):
+    try:
+        with open(configFile, "r") as inFile:
+            for line in inFile:
+                if not re.match(r"[\/\#\*].*", line):
+                    tokens = [t.split("=") for t in line.split(",")]
+                    for i in range(len(tokens)):
+                        token = tokens[i]
+                        if len(token) > 1:
+                            key = token[0]
+                            value = token[1]
+
+                            if key == "iorate":
+                                return int(value)
+    except (IOError, ValueError) as e:
+        raise
+    # If we got here, the config file doesn't contain an iorate, so there's
+    # something wrong.
+    raise Exception("Error: config file {} malformed -- no \"iorate\" specified".format(
+        configFile))
 
 # Update all config files and archive the old ones.
 def updateAndArchiveConfigs(args, allPassed, testID):
@@ -297,6 +324,7 @@ def updateAndArchiveConfigs(args, allPassed, testID):
 # Start the main run.
 def run(args, config, njconfig, verbose=False):
     run = 0
+    consecutiveFailures = 0
     
     # Initial run.
     startNetJobs(njconfig)
@@ -304,6 +332,17 @@ def run(args, config, njconfig, verbose=False):
     while run < args.max_runs:
         results = getAllTestResults(args.outputParent)
         allPassed = compareResultLatencies(results, args.targetLatency)
+
+        if allPassed:
+            consecutiveFailures = 0
+        else:
+            consecutiveFailures += 1
+            if consecutiveFailures >= args.consecutive_failures:
+                print("Notice: VDbench failed to achieve the target latency "
+                    "{} consecutive time(s). Aborting run.".format(
+                        args.consecutive_failures))
+                return
+
         archiveContents(args.outputParent, run)
         updateAndArchiveConfigs(args, allPassed, run)
         startNetJobs(njconfig)
