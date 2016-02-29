@@ -283,7 +283,7 @@ def startNetJobs(njconfig, verbose=False):
             njargs = ("-l", njconfig)
         NetJobs.main(njargs)
     except Exception as e:
-        raise(e)
+        raise e
 
 # Calculate the new IO rate based on the given config file and the allPassed status.
 def calculateNewIORate(configFile, args, allPassed):
@@ -307,7 +307,7 @@ def getOldIORate(configFile):
                             if key == "iorate":
                                 return int(value)
     except (IOError, ValueError) as e:
-        raise
+        raise e
     # If we got here, the config file doesn't contain an iorate, so there's
     # something wrong.
     raise Exception("Error: config file {} malformed --- no \"iorate\" specified.".format(
