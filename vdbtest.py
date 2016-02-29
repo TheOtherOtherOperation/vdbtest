@@ -25,8 +25,8 @@ DEFAULT_CONSECUTIVE_FAILURES = 2
 
 # Get CLI arguments.
 def getArgs():
-    parser = argparse.ArgumentParser(description="""Run VDbench tests to match 
-        IO response across multiple machines against target latency.""")
+    parser = argparse.ArgumentParser(description="Run VDbench tests to match "
+        "IO response across multiple machines against target latency.")
     # Positional.
     parser.add_argument("configFile", type=str,
         help="path to the configuration file")
@@ -310,7 +310,7 @@ def getOldIORate(configFile):
         raise
     # If we got here, the config file doesn't contain an iorate, so there's
     # something wrong.
-    raise Exception("Error: config file {} malformed -- no \"iorate\" specified".format(
+    raise Exception("Error: config file {} malformed --- no \"iorate\" specified.".format(
         configFile))
 
 # Update all config files and archive the old ones.
