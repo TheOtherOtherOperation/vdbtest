@@ -37,7 +37,7 @@ def getArgs():
     parser.add_argument("workFolder", type=str,
         help="path to the work folder for intermediate file storage")
     parser.add_argument("targetLatency", type=float,
-        help="target latency we're trying for (in ms)")
+        help="target latency we're trying for (in seconds)")
     
     # Optional.
     parser.add_argument("-m", "--max-runs", type=int, default=DEFAULT_RUNS,
@@ -150,12 +150,6 @@ def archiveFile(oldPath, testID):
     if not os.path.isdir(archDir):
         os.makedirs(archDir)
     newPath = os.path.join(archDir, os.path.basename(oldPath))
-    if not os.path.exists(os.path.dirname(newPath)):
-        try:
-            os.makedirs(os.path.dirname(filename))
-        except OSError as e: # Guard against race condition
-            if e.errno != errno.EEXIST:
-                raise
     os.rename(oldPath, newPath)
 
     return newPath
@@ -196,7 +190,7 @@ def getTestResults(parentDir):
             values = re.split("\s+", lines[-1])
             results = dict(zip(keys, values))
             return results
-    except IOException as e:
+    except IOError as e:
         raise e
 
 # Find absolute path to totals.html file in specified directory.
@@ -218,8 +212,8 @@ def getAllTestResults(outputDir):
 
 # Given a results dictionary from getAllTestResults and the target latency,
 # returns true if ALL test results were below the target latency, else false.
-def compareResultLatencies(results, targetLatency):
-    for r in results.values():
+def compareResultLatencies(allResults, targetLatency):
+    for r in allResults.values():
         try:
             responseTime = float(r["resp time"])
         except ValueError as e:
@@ -233,8 +227,8 @@ def compareResultLatencies(results, targetLatency):
 # Make a new VDbench configuration file.
 def makeNewVDBConfig(oldConfig, newConfig, newIORate):
     try:
-        vdbconfig.makeNewConfig(oldConfig, newName, newIORate)
-    except IOException as e:
+        vdbconfig.makeNewConfig(oldConfig, newConfig, newIORate)
+    except IOError as e:
         raise e
 
 # Helper for makeNewVDBConfig that tries to remove the test ID from a config
@@ -293,9 +287,9 @@ def startNetJobs(njconfig, verbose=False):
 
 # Calculate the new IO rate based on the given config file and the allPassed status.
 def calculateNewIORate(configFile, args, allPassed):
-    rate = getOldIORate
+    rate = getOldIORate(configFile)
     rate *= args.success_multiplier if allPassed else args.failure_multiplier
-    return rate
+    return int(round(rate))
 
 # Get the old IO rate based on the given config file.
 def getOldIORate(configFile):
@@ -314,6 +308,8 @@ def getOldIORate(configFile):
                                 return int(value)
     except (IOError, ValueError) as e:
         raise e
+    except (IsADirectoryError) as e:
+        print("Warning: {} is a directory, not a file.".format(configFile))
     # If we got here, the config file doesn't contain an iorate, so there's
     # something wrong.
     raise Exception("Error: config file {} malformed --- no \"iorate\" specified.".format(
@@ -321,23 +317,22 @@ def getOldIORate(configFile):
 
 # Update all config files and archive the old ones.
 def updateAndArchiveConfigs(args, allPassed, testID):
-    for f in os.listdir(args.configDir):
-        name = f
-        oldFile = archiveFile(f, testID)
+    for f in getNonArchiveDirs(args.configDir):
+        name = os.path.join(args.configDir, f)
+        oldName = name
+        oldFile = archiveFile(name, testID)
         newIORate = calculateNewIORate(oldFile, args, allPassed)
-        makeNewVDBConfig(oldFile, name, newIORate)
+        makeNewVDBConfig(oldFile, oldName, newIORate)
 
 # Start the main run.
 def run(args, config, njconfig, verbose=False):
-    run = 0
     consecutiveFailures = 0
     
-    # Initial run.
-    startNetJobs(njconfig)
-
-    while run < args.max_runs:
-        results = getAllTestResults(args.outputParent)
-        allPassed = compareResultLatencies(results, args.targetLatency)
+    # Main loop.
+    for run in range(args.max_runs):
+        startNetJobs(njconfig)
+        allResults = getAllTestResults(args.outputParent)
+        allPassed = compareResultLatencies(allResults, args.targetLatency)
 
         if allPassed:
             consecutiveFailures = 0
@@ -349,10 +344,9 @@ def run(args, config, njconfig, verbose=False):
                         args.consecutive_failures))
                 return
 
-        archiveContents(args.outputParent, run)
-        updateAndArchiveConfigs(args, allPassed, run)
-        startNetJobs(njconfig)
-        run += 1
+        if not run == args.max_runs - 1:
+            archiveContents(args.outputParent, run)
+            updateAndArchiveConfigs(args, allPassed, run)
 
 # Main.
 def main():
