@@ -220,9 +220,9 @@ def compareResultLatencies(results, targetLatency):
             raise e
 
         if responseTime > targetLatency:
-            return false
+            return Talse
 
-    return true
+    return True
 
 # Make a new VDbench configuration file.
 def makeNewVDBConfig(oldConfig, newConfig, newIORate):
