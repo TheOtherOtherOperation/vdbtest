@@ -37,7 +37,7 @@ def getArgs():
     parser.add_argument("workFolder", type=str,
         help="path to the work folder for intermediate file storage")
     parser.add_argument("targetLatency", type=float,
-        help="target latency we're trying for (in seconds)")
+        help="target latency we're trying for (in ms)")
     
     # Optional.
     parser.add_argument("-m", "--max-runs", type=int, default=DEFAULT_RUNS,
