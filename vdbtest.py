@@ -317,7 +317,7 @@ def getOldIORate(configFile):
 def updateAndArchiveConfigs(args, allPassed, testID):
     for f in os.listdir(args.configDir):
         name = f
-        oldFile = archiveFile(f)
+        oldFile = archiveFile(f, testID)
         newIORate = calculateNewIORate(oldFile, args, allPassed)
         makeNewVDBConfig(oldFile, name, newIORate)
 
