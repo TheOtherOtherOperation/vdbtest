@@ -344,9 +344,9 @@ def run(args, config, njconfig, verbose=False):
                         args.consecutive_failures))
                 return
 
-        if not run == args.max_runs - 1:
             archiveContents(args.outputParent, run)
-            updateAndArchiveConfigs(args, allPassed, run)
+            if not run == args.max_runs - 1:
+                updateAndArchiveConfigs(args, allPassed, run)
 
 # Main.
 def main():
