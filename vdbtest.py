@@ -150,6 +150,12 @@ def archiveFile(oldPath, testID):
     if not os.path.isdir(archDir):
         os.makedirs(archDir)
     newPath = os.path.join(archDir, os.path.basename(oldPath))
+    if not os.path.exists(os.path.dirname(newPath)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as e: # Guard against race condition
+            if e.errno != errno.EEXIST:
+                raise
     os.rename(oldPath, newPath)
 
     return newPath
