@@ -220,7 +220,7 @@ def compareResultLatencies(allResults, targetLatency):
             raise e
 
         if responseTime > targetLatency:
-            return Talse
+            return False
 
     return True
 
