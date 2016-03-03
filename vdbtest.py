@@ -404,7 +404,7 @@ def main():
     njconfig = makeNetJobsConfig(args.workFolder, args.timeout,
         config["targets"], config["command"], args.configFile)
 
-    print("Starting main run...\n")
+    print("Starting main run...")
 
     # Done with setup.
     run(args, config, njconfig, verbose=args.verbose)
