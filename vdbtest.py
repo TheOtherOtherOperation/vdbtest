@@ -61,7 +61,7 @@ def getArgs():
         .format(DEFAULT_CONSECUTIVE_FAILURES))
     parser.add_argument("-z", "--fuzziness", type=float,
         default=DEFAULT_FUZZINESS,
-        help="acceptable percentage skew from target latency, such that targetLatency * (1 - fuzziness) <= x <= targetLatency * (1 + fuzziness)  (default {})".format(
+        help="acceptable percentage skew from target latency, such that targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness)  (default {})".format(
             DEFAULT_FUZZINESS))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
@@ -224,8 +224,8 @@ def getAllTestResults(outputDir):
 # returns true if ALL test results were below the target latency, else false.
 def compareResultLatencies(allResults, targetLatency, fuzziness):
     maybeDone = True
-    minLat = targetLatency * (1 - fuzziness)
-    maxLat = targetLatency * (1 + fuzziness)
+    minLat = targetLatency * (1.0 - fuzziness)
+    maxLat = targetLatency * (1.0 + fuzziness)
     for r in allResults.values():
         try:
             responseTime = float(r["resp time"])
@@ -368,8 +368,8 @@ def run(args, config, njconfig, verbose=False):
 
         # Finish if sweet spot found.
         if isDone:
-            print("Notice: desired latency (targetLatency * (1 - fuzziness) <= x <= targetLatency * (1 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
-                min=args.targetLatency * (1 - args.fuzziness), max=args.targetLatency * (1 + args.fuzziness)))
+            print("Notice: desired latency (targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
+                min=args.targetLatency * (1.0 - args.fuzziness), max=args.targetLatency * (1.0 + args.fuzziness)))
             return
 
 # Main.
