@@ -369,7 +369,7 @@ def run(args, config, njconfig, verbose=False):
         # Finish if sweet spot found.
         if isDone:
             print("Notice: desired latency (targetLatency * (1 - fuzziness) <= x <= targetLatency * (1 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
-                min=targetLatency * (1 - fuzziness), max=targetLatency * (1 + fuzziness)))
+                min=args.targetLatency * (1 - args.fuzziness), max=args.targetLatency * (1 + args.fuzziness)))
             return
 
 # Main.
