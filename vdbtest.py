@@ -22,6 +22,7 @@ ID_SEP = "_##"
 DEFAULT_SUCCESS_MULTIPLIER = 5.0
 DEFAULT_FAILURE_MULTIPLIER = 0.3
 DEFAULT_CONSECUTIVE_FAILURES = 2
+DEFAULT_FUZZINESS = 0
 
 # Get CLI arguments.
 def getArgs():
@@ -58,6 +59,10 @@ def getArgs():
         default=DEFAULT_CONSECUTIVE_FAILURES,
         help="terminate after n consecutive failures (default {})"
         .format(DEFAULT_CONSECUTIVE_FAILURES))
+    parser.add_argument("--fuzziness", type=int,
+        default=DEFAULT_FUZZINESS,
+        help="acceptable negative skew from target latency, such that target latency - fuzziness <= x <= target latency  (default {})".format(
+            DEFAULT_FUZZINESS)
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
 
@@ -212,7 +217,8 @@ def getAllTestResults(outputDir):
 
 # Given a results dictionary from getAllTestResults and the target latency,
 # returns true if ALL test results were below the target latency, else false.
-def compareResultLatencies(allResults, targetLatency):
+def compareResultLatencies(allResults, targetLatency, fuzziness):
+    maybeDone = True
     for r in allResults.values():
         try:
             responseTime = float(r["resp time"])
@@ -220,9 +226,11 @@ def compareResultLatencies(allResults, targetLatency):
             raise e
 
         if responseTime > targetLatency:
-            return False
+            return False, False
+        elif responseTime < targetLatency - fuzziness:
+            maybeDone = False
 
-    return True
+    return True, maybeDone
 
 # Make a new VDbench configuration file.
 def makeNewVDBConfig(oldConfig, newConfig, newIORate):
@@ -327,12 +335,13 @@ def updateAndArchiveConfigs(args, allPassed, testID):
 # Start the main run.
 def run(args, config, njconfig, verbose=False):
     consecutiveFailures = 0
-    
+
     # Main loop.
     for run in range(args.max_runs):
         startNetJobs(njconfig)
         allResults = getAllTestResults(args.outputParent)
-        allPassed = compareResultLatencies(allResults, args.targetLatency)
+        allPassed, isDone = compareResultLatencies(allResults, args.targetLatency,
+            args.fuzziness)
 
         if allPassed:
             consecutiveFailures = 0
@@ -345,6 +354,13 @@ def run(args, config, njconfig, verbose=False):
                 return
 
             archiveContents(args.outputParent, run)
+
+            # Finish if sweet spot found.
+            if isDone:
+                print("Notice: saturation point (targetLatency - fuzziness <= x <= targetLatency --> {min} <= x <= {max}) found. Run finished.".format(
+                    min=targetLatency-fuzziness, max=targetLatency))
+                return
+
             if not run == args.max_runs - 1:
                 updateAndArchiveConfigs(args, allPassed, run)
 
