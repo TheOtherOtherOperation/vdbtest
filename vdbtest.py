@@ -47,21 +47,21 @@ def getArgs():
     parser.add_argument("-t", "--timeout", type=int, default=DEFAULT_TIMEOUT,
         help="set a timeout in seconds for the scheduler (default {})"
         .format(DEFAULT_TIMEOUT))
-    parser.add_argument("--success-multiplier", type=float,
+    parser.add_argument("-s", "--success-multiplier", type=float,
         default=DEFAULT_SUCCESS_MULTIPLIER,
         help="override IO rate multiplier when target is below target latency (default {})"
         .format(DEFAULT_SUCCESS_MULTIPLIER))
-    parser.add_argument("--failure-multiplier", type=float,
+    parser.add_argument("-f", "--failure-multiplier", type=float,
         default=DEFAULT_FAILURE_MULTIPLIER,
         help="override IO rate multiplier when target is above target latency (default {})"
         .format(DEFAULT_FAILURE_MULTIPLIER))
-    parser.add_argument("--consecutive-failures", type=int,
+    parser.add_argument("-c", "--consecutive-failures", type=int,
         default=DEFAULT_CONSECUTIVE_FAILURES,
         help="terminate after n consecutive failures (default {})"
         .format(DEFAULT_CONSECUTIVE_FAILURES))
-    parser.add_argument("--fuzziness", type=float,
+    parser.add_argument("-z", "--fuzziness", type=float,
         default=DEFAULT_FUZZINESS,
-        help="acceptable negative skew from target latency, such that target latency - fuzziness <= x <= target latency  (default {})".format(
+        help="acceptable percentage skew from target latency, such that targetLatency * (1 - fuzziness) <= x <= targetLatency * (1 + fuzziness)  (default {})".format(
             DEFAULT_FUZZINESS))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
@@ -72,6 +72,11 @@ def getArgs():
     args.configDir = os.path.realpath(args.configDir)
     args.outputParent = os.path.realpath(args.outputParent)
     args.workFolder = os.path.realpath(args.workFolder)
+
+    # Verify directories exist.
+    os.makedirs(args.configDir, exist_ok=True)
+    os.makedirs(args.outputParent, exist_ok=True)
+    os.makedirs(args.workFolder, exist_ok=True)
 
     if args.max_runs < 1:
         print("Warning: max_runs < 1. Using default ({}).".format(DEFAULT_RUNS))
@@ -219,15 +224,17 @@ def getAllTestResults(outputDir):
 # returns true if ALL test results were below the target latency, else false.
 def compareResultLatencies(allResults, targetLatency, fuzziness):
     maybeDone = True
+    minLat = targetLatency * (1 - fuzziness)
+    maxLat = targetLatency * (1 + fuzziness)
     for r in allResults.values():
         try:
             responseTime = float(r["resp time"])
         except ValueError as e:
             raise e
 
-        if responseTime > targetLatency:
+        if fuzziness == 0.0 and responseTime > targetLatency:
             return False, False
-        elif responseTime < targetLatency - fuzziness:
+        elif responseTime < minLat or responseTime > maxLat:
             maybeDone = False
 
     return True, maybeDone
@@ -278,7 +285,7 @@ def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
     except Exception as e:
         raise e
 
-    print("NetJobs config saved as: {}".format(nj_path))
+    print("NetJobs config saved as: {}\n".format(nj_path))
 
     return nj_path
 
@@ -344,6 +351,10 @@ def run(args, config, njconfig, verbose=False):
             args.fuzziness)
 
         archiveContents(args.outputParent, run)
+        if run == args.max_runs - 1:
+            archiveContents(args.configDir, run)
+        else:
+            updateAndArchiveConfigs(args, allPassed, run)
 
         if allPassed:
             consecutiveFailures = 0
@@ -357,19 +368,43 @@ def run(args, config, njconfig, verbose=False):
 
         # Finish if sweet spot found.
         if isDone:
-            print("Notice: desired latency (targetLatency - fuzziness <= x <= targetLatency --> {min} <= x <= {max}) found. Run finished.".format(
-                min=targetLatency-fuzziness, max=targetLatency))
+            print("Notice: desired latency (targetLatency * (1 - fuzziness) <= x <= targetLatency * (1 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
+                min=targetLatency * (1 - fuzziness), max=targetLatency * (1 + fuzziness)))
             return
-
-        if not run == args.max_runs - 1:
-            updateAndArchiveConfigs(args, allPassed, run)
 
 # Main.
 def main():
     args = getArgs()
+
+    if args.verbose:
+        print("--- DeepStorage vdbtest ---")
+        print("Verbose mode enabled.")
+        print("> Configuration: {}".format(args.configFile))
+        print("> Directory for VDbench configurations: {}".format(
+            args.configDir))
+        print("> Output directory: {}".format(args.outputParent))
+        print("> NetJobs work folder: {}".format(args.workFolder))
+        print("> Target latency: {}ms".format(args.targetLatency))
+        print("> Fuzziness: {}\%".format(args.fuzziness))
+        print("> Maximum runs: {}".format(args.max_runs))
+        print("> Success multiplier: {}".format(args.success_multiplier))
+        print("> Failure multiplier: {}".format(args.failure_multiplier))
+        print("> NetJobs timeout: {}s".format(args.timeout))
+        print("> Aborting after {} consecutive failures".format(args.consecutive_failures))
+
     config = readConfig(args.configFile)
+
+    if args.verbose:
+        print("> Command: \"{}\"".format(config["command"]))
+        print("> Target list: ")
+        for t in config["targets"]:
+            print("    {}".format(t))
+        print()
+
     njconfig = makeNetJobsConfig(args.workFolder, args.timeout,
         config["targets"], config["command"], args.configFile)
+
+    print("Starting main run...\n")
 
     # Done with setup.
     run(args, config, njconfig, verbose=args.verbose)
