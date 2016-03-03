@@ -395,7 +395,7 @@ def main():
     config = readConfig(args.configFile)
 
     if args.verbose:
-        print("> Command: \"{}\"".format(config["command"]))
+        print("> Command: {}".format(config["command"]))
         print("> Target list: ")
         for t in config["targets"]:
             print("    {}".format(t))
