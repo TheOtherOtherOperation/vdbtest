@@ -61,7 +61,7 @@ def getArgs():
         .format(DEFAULT_CONSECUTIVE_FAILURES))
     parser.add_argument("-z", "--fuzziness", type=float,
         default=DEFAULT_FUZZINESS,
-        help="acceptable percentage skew from target latency, such that targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness)  (default {})".format(
+        help="acceptable fractional skew from target latency, such that targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness)  (default {})".format(
             DEFAULT_FUZZINESS))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
