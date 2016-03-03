@@ -22,7 +22,7 @@ ID_SEP = "_##"
 DEFAULT_SUCCESS_MULTIPLIER = 5.0
 DEFAULT_FAILURE_MULTIPLIER = 0.3
 DEFAULT_CONSECUTIVE_FAILURES = 2
-DEFAULT_FUZZINESS = 0
+DEFAULT_FUZZINESS = 0.0
 
 # Get CLI arguments.
 def getArgs():
@@ -81,6 +81,10 @@ def getArgs():
     if args.max_runs < 1:
         print("Warning: max_runs < 1. Using default ({}).".format(DEFAULT_RUNS))
         args.max_runs = DEFAULT_RUNS
+    if 1.0 - args.fuzziness < 0:
+        print("Warning: 1.0 - fuzziness < 0. Using default ({}).".format(
+            DEFAULT_FUZZINESS))
+        args.fuzziness = DEFAULT_FUZZINESS
 
     return args
 
