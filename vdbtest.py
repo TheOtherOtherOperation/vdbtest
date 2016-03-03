@@ -59,10 +59,10 @@ def getArgs():
         default=DEFAULT_CONSECUTIVE_FAILURES,
         help="terminate after n consecutive failures (default {})"
         .format(DEFAULT_CONSECUTIVE_FAILURES))
-    parser.add_argument("--fuzziness", type=int,
+    parser.add_argument("--fuzziness", type=float,
         default=DEFAULT_FUZZINESS,
         help="acceptable negative skew from target latency, such that target latency - fuzziness <= x <= target latency  (default {})".format(
-            DEFAULT_FUZZINESS)
+            DEFAULT_FUZZINESS))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
 
@@ -343,6 +343,8 @@ def run(args, config, njconfig, verbose=False):
         allPassed, isDone = compareResultLatencies(allResults, args.targetLatency,
             args.fuzziness)
 
+        archiveContents(args.outputParent, run)
+
         if allPassed:
             consecutiveFailures = 0
         else:
@@ -353,16 +355,14 @@ def run(args, config, njconfig, verbose=False):
                         args.consecutive_failures))
                 return
 
-            archiveContents(args.outputParent, run)
+        # Finish if sweet spot found.
+        if isDone:
+            print("Notice: desired latency (targetLatency - fuzziness <= x <= targetLatency --> {min} <= x <= {max}) found. Run finished.".format(
+                min=targetLatency-fuzziness, max=targetLatency))
+            return
 
-            # Finish if sweet spot found.
-            if isDone:
-                print("Notice: saturation point (targetLatency - fuzziness <= x <= targetLatency --> {min} <= x <= {max}) found. Run finished.".format(
-                    min=targetLatency-fuzziness, max=targetLatency))
-                return
-
-            if not run == args.max_runs - 1:
-                updateAndArchiveConfigs(args, allPassed, run)
+        if not run == args.max_runs - 1:
+            updateAndArchiveConfigs(args, allPassed, run)
 
 # Main.
 def main():
