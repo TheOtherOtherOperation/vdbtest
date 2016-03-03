@@ -389,7 +389,7 @@ def main():
         print("> Output directory: {}".format(args.outputParent))
         print("> NetJobs work folder: {}".format(args.workFolder))
         print("> Target latency: {}ms".format(args.targetLatency))
-        print("> Fuzziness: {}\%".format(args.fuzziness))
+        print("> Fuzziness: {}".format(args.fuzziness))
         print("> Maximum runs: {}".format(args.max_runs))
         print("> Success multiplier: {}".format(args.success_multiplier))
         print("> Failure multiplier: {}".format(args.failure_multiplier))
