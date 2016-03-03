@@ -349,7 +349,7 @@ def run(args, config, njconfig, verbose=False):
 
     # Main loop.
     for run in range(args.max_runs):
-        startNetJobs(njconfig)
+        startNetJobs(njconfig, verbose=args.verbose)
         allResults = getAllTestResults(args.outputParent)
         allPassed, isDone = compareResultLatencies(allResults, args.targetLatency,
             args.fuzziness)
