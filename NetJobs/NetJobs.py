@@ -77,12 +77,6 @@ logging = False
 class NetJobs:
     "NetJobs main class"
 
-    # Instance variables.
-    path_in = ''
-    tests = []
-    sockets = {}
-    listeners = {}
-
     # Flag managed by handle_timeout.
     testAborted = False
 
@@ -91,6 +85,12 @@ class NetJobs:
     #
     def __init__(self, argv):
         "basic initializer"
+
+        self.path_in = ''
+        self.tests = []
+        self.sockets = {}
+        self.listeners = {}
+
         # Process CLI arguments.
         self.eval_options(argv)
 

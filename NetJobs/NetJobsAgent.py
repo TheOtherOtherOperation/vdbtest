@@ -10,7 +10,7 @@
 #                                                                              #
 # Author: Ramon A. Lovato (ramonalovato.com)                                   #
 # For: Deepstorage, LLC (deepstorage.net)                                      #
-# Version: 2.2                                                                 #
+# Version: 2.3                                                                 #
 #                                                                              #
 # Usage: NetJobsAgent.py                                                       #
 #                                                                              #

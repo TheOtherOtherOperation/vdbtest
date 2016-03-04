@@ -295,11 +295,12 @@ def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
 
 # Run NetJobs once.
 def startNetJobs(njconfig, verbose=False):
+    if verbose:
+        njargs = ("-l", "-v", njconfig)
+    else:
+        njargs = ("-l", njconfig)
+
     try:
-        if verbose:
-            njargs = ("-l", "-v", njconfig)
-        else:
-            njargs = ("-l", njconfig)
         NetJobs.main(njargs)
     except Exception as e:
         raise e
@@ -344,15 +345,28 @@ def updateAndArchiveConfigs(args, allPassed, testID):
         makeNewVDBConfig(oldFile, oldName, newIORate)
 
 # Start the main run.
-def run(args, config, njconfig, verbose=False):
+def run(args, config, njconfig):
     consecutiveFailures = 0
 
     # Main loop.
     for run in range(args.max_runs):
+        print("--- Run {}/{} ----".format(run, args.max_runs-1))
+
+        if args.verbose:
+            print("\n    ### Begin NetJobs Output ###")
+
         startNetJobs(njconfig, verbose=args.verbose)
+
+        if args.verbose:
+            print("\n    ### End NetJobs Output ###")
+
         allResults = getAllTestResults(args.outputParent)
         allPassed, isDone = compareResultLatencies(allResults, args.targetLatency,
             args.fuzziness)
+
+        if args.verbose:
+            print("\nDid all targets achieve the target latency? {}.\n".format("Yes" if allPassed else "No"))
+            print("Archiving output and VDbench configurations.\n")
 
         archiveContents(args.outputParent, run)
         if run == args.max_runs - 1:
@@ -365,14 +379,16 @@ def run(args, config, njconfig, verbose=False):
         else:
             consecutiveFailures += 1
             if consecutiveFailures >= args.consecutive_failures:
-                print("Notice: VDbench failed to achieve the target latency "
-                    "{} consecutive time(s). Aborting run.".format(
-                        args.consecutive_failures))
+                print("--- Notice: VDbench failed to achieve the target latency "
+                    "{}/{} consecutive time(s). Aborting run.".format(
+                        consecutiveFailures, args.consecutive_failures))
                 return
+            elif args.verbose:
+                print("Number of consecutive failures: {}/{}.".format(consecutiveFailures, args.consecutive_failures))
 
         # Finish if sweet spot found.
         if isDone:
-            print("Notice: desired latency (targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
+            print("--- Notice: desired latency (targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
                 min=args.targetLatency * (1.0 - args.fuzziness), max=args.targetLatency * (1.0 + args.fuzziness)))
             return
 
@@ -381,7 +397,7 @@ def main():
     args = getArgs()
 
     if args.verbose:
-        print("--- DeepStorage vdbtest ---")
+        print("\n--- DeepStorage vdbtest ---")
         print("Verbose mode enabled.")
         print("> Configuration: {}".format(args.configFile))
         print("> Directory for VDbench configurations: {}".format(
@@ -408,10 +424,10 @@ def main():
     njconfig = makeNetJobsConfig(args.workFolder, args.timeout,
         config["targets"], config["command"], args.configFile)
 
-    print("Starting main run...")
+    print("Starting main run...\n")
 
     # Done with setup.
-    run(args, config, njconfig, verbose=args.verbose)
+    run(args, config, njconfig)
 
 if __name__ == "__main__":
     main()
