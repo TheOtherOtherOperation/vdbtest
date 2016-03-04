@@ -349,16 +349,16 @@ def run(args, config, njconfig):
     consecutiveFailures = 0
 
     # Main loop.
-    for run in range(args.max_runs):
-        print("--- Run {}/{} ----".format(run, args.max_runs-1))
+    for run in range(1, args.max_runs+1):
+        print("--- Run {}/{} ----".format(run, args.max_runs))
 
         if args.verbose:
-            print("\n    ### Begin NetJobs Output ###")
+            print("\n### Begin NetJobs Output ###")
 
         startNetJobs(njconfig, verbose=args.verbose)
 
         if args.verbose:
-            print("\n    ### End NetJobs Output ###")
+            print("\n### End NetJobs Output ###")
 
         allResults = getAllTestResults(args.outputParent)
         allPassed, isDone = compareResultLatencies(allResults, args.targetLatency,
@@ -369,7 +369,7 @@ def run(args, config, njconfig):
             print("Archiving output and VDbench configurations.\n")
 
         archiveContents(args.outputParent, run)
-        if run == args.max_runs - 1:
+        if run == args.max_runs:
             archiveContents(args.configDir, run)
         else:
             updateAndArchiveConfigs(args, allPassed, run)
