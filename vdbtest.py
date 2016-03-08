@@ -29,40 +29,114 @@ DEFAULT_IOPS_TOLERANCE = 1.5
 # Simple data structure for storing test information. Note that run indexing
 # goes from 1 to args.max_runs (for readability). Thus, run 0 data are
 # initialized to None.
+#
+# Early builds had some problems with invisible files (such as Linux
+# temp files: file.txt~) being added to TestInfo on initialization but
+# not having any data associated with them since they weren't real
+# run configurations. This solution isn't foolproof, but as a safeguard
+# to prevent errors if there are problems, we now deliberately ignore
+# lists whose length is shorter than the others.
 class TestInfo:
     # Initializer.
     def __init__(self, configDir):
-        self.names = [os.path.basename(f) for f in getNonArchives(configDir)]
-        self.requestedIOPS = self.initTestDict()
-        self.latencies = self.initTestDict()
-        self.achievedIOPS = self.initTestDict()
+        self.names = [getNameOnly(f) for f in getContents(configDir)]
+        self.requestedIOPS = {}
+        self.achievedIOPS = {}
+        self.latencies = {}
 
-    def initTestDict(self):
-        return dict([(name, [None]) for name in self.names])
+        for name in self.names:
+            self.requestedIOPS[name] = [None]
+            self.achievedIOPS[name] = [None]
+            self.latencies[name] = [None]
+        
+        # self.state = 0: pre-test.
+        # self.state = 1: post-test.
+        self.state = 0
+        self.runCount = 0
+        self.ignoredNames = []
 
     # Add requested IOPS to TestInfo.
     def updatePreTest(self, configDir):
-        for config in getNonArchives(configDir):
-            name = os.path.basename(config)
+        self.runCount += 1
+        self.state = 0
+        for config in getContents(configDir):
+            name = getNameOnly(config)
             if not name in self.names:
-                print("Warning: configuration file {} added after initialization.".format(
-                    config))
+                if name not in self.ignoredNames:
+                    self.ignoredNames.append(name)
+                    print("Warning: configuration file {} found for unregistered (new or blacklisted) target. This warning will only appear once per file.".format(
+                        config))
                 continue
 
             self.requestedIOPS[name].append(getOldIORate(config))
 
     # Add latency and achieved IOPS to TestInfo.
     def updatePostTest(self, outputParent):
-        for folder in getNonArchives(outputParent):
+        for folder in getContents(outputParent):
+            self.state = 1
             name = os.path.basename(folder)
-            if not name in self.names:
-                print("Warning: output file {} found for unregistered configuration.".format(
-                    folder))
+            if name not in self.names:
+                if name not in self.ignoredNames:
+                    self.ignoredNames.append(name)
+                    print("Warning: output file {} found for unregistered (new or blacklisted) configuration. This warning will only appear once per file".format(
+                        folder))
                 continue
 
-            results = getTestResults(folder)
+            try:
+                results = getTestResults(folder)
+            except Exception as e:
+                self.blacklistTarget(name)
+                print("Warning: unable to locate \"totals.html\" file for {}. Adding to blacklist.".format(
+                    name))
+
             self.achievedIOPS[name].append(float(results["i/o rate"]))
             self.latencies[name].append(float(results["resp time"]))
+        
+        # Check for targets without updated data and blacklist them.
+        self.blacklistTest()
+
+    # Scan the data structure and blacklist any list whose length is shorter
+    # than self.runCount + 1 (since the first element of each list is always
+    # None), as this would mean its entries weren't updated properly.
+    def blacklistTest(self):
+        if not self.state == 1:
+            raise Exception("TestInfo.blacklistTest is only valid in post-test (1) state.")
+
+        # List index 0 is always None, since test indexing goes from 1 through
+        # n, so the length is always 1 more than the run index.
+        maxLength = self.runCount + 1
+        testLam = lambda t: (len(self.requestedIOPS[t]) == maxLength
+            and len(self.achievedIOPS[t]) == maxLength
+            and len(self.latencies[t]) == maxLength)
+
+        blacklist = [t for t in self.names if not testLam(t)]
+
+        if len(blacklist) > 0:
+            for name in blacklist:
+                self.blacklistTarget(name)
+
+            print("\nWarning: some targets did not have their data updated. "
+                "This is usually due to a broken pipe, bad configuration, or "
+                "erroneous files placed in the configuration directory. It "
+                "can also happen if the VDbench output directories have "
+                "different base names than their configuration files. These "
+                "targets will be blacklisted for the remainder of the run.")
+            print("\nAffected targets:")
+            for name in blacklist:
+                print("    - {}".format(name))
+            print()
+
+        if len(self.names) == 0:
+            raise Exception("Error: no targets remain after blacklisting. Unable to continue.")
+
+    # Blacklist a specific target.
+    def blacklistTarget(self, name):
+        if name in self.names:
+            self.names.remove(name)
+            del(self.requestedIOPS[name])
+            del(self.achievedIOPS[name])
+            del(self.latencies[name])
+            self.ignoredNames.append(name)
 
 # LogWriter object for better encapsulating Python's file IO and CSV-handling.
 # Tracks the CSV writer associated with the log file and auto-flushes rows.
@@ -276,7 +350,7 @@ def readConfig(configFile):
 # Archive everything in the specified directory that isn't itself an archive
 # directory.
 def archiveContents(parentDir, testID):
-    candidates = getNonArchives(parentDir)
+    candidates = getContents(parentDir)
     for c in candidates:
         archiveFile(c, testID)
 
@@ -293,10 +367,13 @@ def archiveFile(oldPath, testID):
 
     return newPath
 
-# Gets a list of directories in the specified parent directory, excluding
-# archives.
-def getNonArchives(parentDir):
-    names = filter(lambda d: not re.match(ARCHIVE_DIR_REGEX, d),
+# Gets a list of contents of the specified parent directory, excluding
+# those that match the archive formatting. Also skips filenames that
+# begin with a dot (".") or end with a tilde ("~") in order to
+# filter out some issues with hidden and temp files under Linux.
+def getContents(parentDir):
+    names = filter(lambda d: not re.match(ARCHIVE_DIR_REGEX, d)
+        and not d.startswith(".") and not d.endswith("~"),
         os.listdir(parentDir))
     return [os.path.join(parentDir, p) for p in names]
 
@@ -345,7 +422,7 @@ def findTotalsFile(parentDir):
 # Get all test results from the directories within the output directory.
 def getAllTestResults(outputDir):
     allResults = {}
-    for f in getNonArchives(outputDir):
+    for f in getContents(outputDir):
         allResults[os.path.basename(f)] = getTestResults(f)
     return allResults
 
@@ -414,7 +491,7 @@ def makeNetJobsConfig(workFolder, timeout, targets, command, configFile):
     except Exception as e:
         raise e
 
-    print("NetJobs config saved as: {}\n".format(nj_path))
+    print("\nNetJobs config saved as: {}\n".format(nj_path))
 
     return nj_path
 
@@ -462,7 +539,7 @@ def getOldIORate(configFile):
 
 # Update all config files and archive the old ones.
 def updateAndArchiveConfigs(args, allPassed, testID):
-    for f in getNonArchives(args.configDir):
+    for f in getContents(args.configDir):
         name = os.path.join(args.configDir, f)
         oldName = name
         oldFile = archiveFile(name, testID)
@@ -480,16 +557,20 @@ def testAchievedIOPS(testInfo, tolerance):
 
     return True
 
+# Helper method that extracts the base filename, without extension, from a path.
+def getNameOnly(path):
+    return os.path.splitext(os.path.basename(path))[0]
+
 # Start the main run.
 def run(args, config, njconfig, testInfo, logWriter):
-    print("Starting main run...\n")
+    print("Starting main run...")
 
     consecutiveFailures = 0
 
     # Main loop. Note the run indexing goes from 1 to args.max_runs
     # (for readability).
     for run in range(1, args.max_runs+1):
-        print("--- Run {}/{} ----".format(run, args.max_runs))
+        print("\n--- Run {}/{} ----".format(run, args.max_runs))
 
         testInfo.updatePreTest(args.configDir)
 
@@ -501,14 +582,13 @@ def run(args, config, njconfig, testInfo, logWriter):
         if args.verbose:
             print("\n### End NetJobs Output ###")
 
-        allResults = getAllTestResults(args.outputParent)
-        allPassed, isDone = compareResultLatencies(allResults,
-            args.targetLatency, args.fuzziness)
-
         testInfo.updatePostTest(args.outputParent)
 
         logWriter.updateLog(testInfo, run)
 
+        allResults = getAllTestResults(args.outputParent)
+        allPassed, isDone = compareResultLatencies(allResults,
+            args.targetLatency, args.fuzziness)
         sufficientIOPS = testAchievedIOPS(testInfo, args.iops_tolerance)
 
         if args.verbose:
@@ -531,7 +611,7 @@ def run(args, config, njconfig, testInfo, logWriter):
             if consecutiveFailures >= args.consecutive_failures:
                 message = "VDbench failed to achieve the target latency {}/{} consecutive time(s). Aborting run.".format(
                     consecutiveFailures, args.consecutive_failures)
-                print("--- Notice: {}".format(message))
+                print("\n--- Notice: {}\n".format(message))
                 logWriter.logSignOff(message)
                 return
             elif args.verbose:
@@ -539,9 +619,9 @@ def run(args, config, njconfig, testInfo, logWriter):
                     consecutiveFailures, args.consecutive_failures))
 
         if not sufficientIOPS:
-            message = "VDbench failed to achieve requested IOPS within tolerance ({}). Requested IOPS is too high. Aborting run.".format(
+            message = "VDbench failed to achieve requested IOPS within tolerance of {}. Requested IO rate is too high or exceeds soft cap. Aborting run.".format(
                 args.iops_tolerance)
-            print("--- Notice: {}".format(message))
+            print("\n--- Notice: {}\n".format(message))
             logWriter.logSignOff(message)
             return
 
@@ -550,13 +630,13 @@ def run(args, config, njconfig, testInfo, logWriter):
             message = "Desired latency (targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness) --> {min} <= x <= {max}) found. Run complete.".format(
             min=args.targetLatency * (1.0 - args.fuzziness),
             max=args.targetLatency * (1.0 + args.fuzziness))
-            print("--- Notice: {}".format(message))
+            print("\n--- Notice: {}\n".format(message))
             logWriter.logSignOff(message)
             return
 
     # Max runs reached.
     message = "Max runs ({}) reached. Run complete.".format(args.max_runs)
-    print("--- Notice: {}".format(message))
+    print("\n--- Notice: {}\n".format(message))
     logWriter.logSignOff(message)
 
 # Main.
