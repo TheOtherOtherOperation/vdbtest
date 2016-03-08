@@ -1,0 +1,3 @@
+run #,configuration,requested IOPS,achieved IOPS,latency (ms)
+1,vdbench_test.txt,1000,1007.93,0.642
+,total/average,1000.0,1007.93,0.642

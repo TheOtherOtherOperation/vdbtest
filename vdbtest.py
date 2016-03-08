@@ -11,6 +11,7 @@ import argparse
 import os.path
 import os
 import re
+import csv
 from vdbconfig import vdbconfig
 from NetJobs import NetJobs
 
@@ -23,11 +24,125 @@ DEFAULT_SUCCESS_MULTIPLIER = 5.0
 DEFAULT_FAILURE_MULTIPLIER = 0.3
 DEFAULT_CONSECUTIVE_FAILURES = 2
 DEFAULT_FUZZINESS = 0.0
+DEFAULT_IOPS_TOLERANCE = 1.5
+
+# Simple data structure for storing test information. Note that run indexing
+# goes from 1 to args.max_runs (for readability). Thus, run 0 data are
+# initialized to None.
+class TestInfo:
+    # Initializer.
+    def __init__(self, configDir):
+        self.names = [os.path.basename(f) for f in getNonArchives(configDir)]
+        self.requestedIOPS = self.initTestDict()
+        self.latencies = self.initTestDict()
+        self.achievedIOPS = self.initTestDict()
+
+    def initTestDict(self):
+        return dict([(name, [None]) for name in self.names])
+
+    # Add requested IOPS to TestInfo.
+    def updatePreTest(self, configDir):
+        for config in getNonArchives(configDir):
+            name = os.path.basename(config)
+            if not name in self.names:
+                print("Warning: configuration file {} added after initialization.".format(
+                    config))
+                continue
+
+            self.requestedIOPS[name].append(getOldIORate(config))
+
+    # Add latency and achieved IOPS to TestInfo.
+    def updatePostTest(self, outputParent):
+        for folder in getNonArchives(outputParent):
+            name = os.path.basename(folder)
+            if not name in self.names:
+                print("Warning: output file {} found for unregistered configuration.".format(
+                    folder))
+                continue
+
+            results = getTestResults(folder)
+            self.achievedIOPS[name].append(float(results["i/o rate"]))
+            self.latencies[name].append(float(results["resp time"]))
+
+# LogWriter object for better encapsulating Python's file IO and CSV-handling.
+# Tracks the CSV writer associated with the log file and auto-flushes rows.
+#
+# --- CSV table format ---
+#
+# run #    configuration    requested IOPS    achieved IOPS    latency (ms)
+# 1        vdb1
+#          vdb2
+#          ...
+#          total/average
+# 2        vdb1
+#          vdb2
+#          ...
+#          total/average
+# ...      ...
+class LogWriter:
+    # Initializaer.
+    def __init__(self, log):
+        self.log = log
+        self.logWriter = csv.writer(log, delimiter=',', quotechar='"',
+            quoting=csv.QUOTE_MINIMAL)
+
+    # Write the log header.
+    def writeHeader(self):
+        self.logWriter.writerow(["run #", "configuration", "requested IOPS",
+            "achieved IOPS", "latency (ms)"])
+        self.flushNow()
+
+    # Update the log file.
+    def updateLog(self, testInfo, run):
+        row = LogWriter.updateLogHelper(testInfo.names[0], testInfo, run=run)
+        self.logWriter.writerow(row)
+        if len(testInfo.names) > 1:
+            for name in testInfo.names[1:]:
+                row = LogWriter.updateLogHelper(name, testInfo)
+                self.logWriter.writerow(row)
+        row = LogWriter.updateLogTotalsHelper(testInfo)
+        self.logWriter.writerow(row)
+        self.flushNow()
+
+    # Helper for updateLog.
+    def updateLogHelper(name, testInfo, run=None):
+        row = ["{}".format(str(run) if run else ""),
+               name,
+               str(testInfo.requestedIOPS[name][-1]),
+               str(testInfo.achievedIOPS[name][-1]),
+               str(testInfo.latencies[name][-1])]
+        return row
+
+    def updateLogTotalsHelper(testInfo):
+        totalRequestedIOPS = 0.0
+        totalAchievedIOPS = 0.0
+        totalLatency = 0.0
+        for name in testInfo.names:
+            totalRequestedIOPS += testInfo.requestedIOPS[name][-1]
+            totalAchievedIOPS += testInfo.achievedIOPS[name][-1]
+            totalLatency += testInfo.latencies[name][-1]
+        averageLatency = totalLatency  / len(testInfo.latencies.keys())
+        row = ["",
+               "total/average",
+               str(totalRequestedIOPS),
+               str(totalAchievedIOPS),
+               str(averageLatency)]
+        return row
+
+    # Write log sign-off message on its own line, after a signel empty line.
+    def logSignOff(self, message):
+        self.logWriter.writerow([])
+        self.logWriter.writerow([message])
+        self.flushNow()
+
+    # Force Python and the OS to immediately write the changes to disk.
+    def flushNow(self):
+        self.log.flush()
+        os.fsync(self.log.fileno())
 
 # Get CLI arguments.
 def getArgs():
-    parser = argparse.ArgumentParser(description="Run VDbench tests to match "
-        "IO response across multiple machines against target latency.")
+    parser = argparse.ArgumentParser(description="Run VDbench tests to match IO response across multiple machines against target latency.")
     # Positional.
     parser.add_argument("configFile", type=str,
         help="path to the configuration file")
@@ -37,6 +152,8 @@ def getArgs():
         help="the parent directory of the directories containing output files")
     parser.add_argument("workFolder", type=str,
         help="path to the work folder for intermediate file storage")
+    parser.add_argument("logPath", type=str,
+        help="where to save the log file")
     parser.add_argument("targetLatency", type=float,
         help="target latency we're trying for (in ms)")
     
@@ -63,6 +180,10 @@ def getArgs():
         default=DEFAULT_FUZZINESS,
         help="acceptable fractional skew from target latency, such that targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness)  (default {})".format(
             DEFAULT_FUZZINESS))
+    parser.add_argument("-i", "--iops-tolerance", type=float,
+        default=DEFAULT_IOPS_TOLERANCE,
+        help="if IOPS achieved * IOPS tolerance < IOPS requested, terminate early (default {})".format(
+            DEFAULT_IOPS_TOLERANCE))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
 
@@ -85,6 +206,10 @@ def getArgs():
         print("Warning: 1.0 - fuzziness < 0. Using default ({}).".format(
             DEFAULT_FUZZINESS))
         args.fuzziness = DEFAULT_FUZZINESS
+    if args.iops_tolerance < 1.0:
+        print("Warning: iops_tolerance < 1.0. Using default ({}).".format(
+            DEFAULT_IOPS_TOLERANCE))
+        args.iops_tolerance = DEFAULT_IOPS_TOLERANCE
 
     return args
 
@@ -151,7 +276,7 @@ def readConfig(configFile):
 # Archive everything in the specified directory that isn't itself an archive
 # directory.
 def archiveContents(parentDir, testID):
-    candidates = getNonArchiveDirs(parentDir)
+    candidates = getNonArchives(parentDir)
     for c in candidates:
         archiveFile(c, testID)
 
@@ -170,7 +295,7 @@ def archiveFile(oldPath, testID):
 
 # Gets a list of directories in the specified parent directory, excluding
 # archives.
-def getNonArchiveDirs(parentDir):
+def getNonArchives(parentDir):
     names = filter(lambda d: not re.match(ARCHIVE_DIR_REGEX, d),
         os.listdir(parentDir))
     return [os.path.join(parentDir, p) for p in names]
@@ -220,7 +345,7 @@ def findTotalsFile(parentDir):
 # Get all test results from the directories within the output directory.
 def getAllTestResults(outputDir):
     allResults = {}
-    for f in getNonArchiveDirs(outputDir):
+    for f in getNonArchives(outputDir):
         allResults[os.path.basename(f)] = getTestResults(f)
     return allResults
 
@@ -305,7 +430,7 @@ def startNetJobs(njconfig, verbose=False):
     except Exception as e:
         raise e
 
-# Calculate the new IO rate based on the given config file and the allPassed status.
+# Calculate the new IO rate based on the given config file and allPassed.
 def calculateNewIORate(configFile, args, allPassed):
     rate = getOldIORate(configFile)
     rate *= args.success_multiplier if allPassed else args.failure_multiplier
@@ -337,20 +462,36 @@ def getOldIORate(configFile):
 
 # Update all config files and archive the old ones.
 def updateAndArchiveConfigs(args, allPassed, testID):
-    for f in getNonArchiveDirs(args.configDir):
+    for f in getNonArchives(args.configDir):
         name = os.path.join(args.configDir, f)
         oldName = name
         oldFile = archiveFile(name, testID)
         newIORate = calculateNewIORate(oldFile, args, allPassed)
         makeNewVDBConfig(oldFile, oldName, newIORate)
 
+# Test if the achieved IOPS is acceptable (achieved * tolerance >= requested).
+def testAchievedIOPS(testInfo, tolerance):
+    for name in testInfo.names:
+        requestedIOPS = float(testInfo.requestedIOPS[name][-1])
+        achievedIOPS = float(testInfo.achievedIOPS[name][-1])
+
+        if achievedIOPS * tolerance < requestedIOPS:
+            return False
+
+    return True
+
 # Start the main run.
-def run(args, config, njconfig):
+def run(args, config, njconfig, testInfo, logWriter):
+    print("Starting main run...\n")
+
     consecutiveFailures = 0
 
-    # Main loop.
+    # Main loop. Note the run indexing goes from 1 to args.max_runs
+    # (for readability).
     for run in range(1, args.max_runs+1):
         print("--- Run {}/{} ----".format(run, args.max_runs))
+
+        testInfo.updatePreTest(args.configDir)
 
         if args.verbose:
             print("\n### Begin NetJobs Output ###")
@@ -361,11 +502,20 @@ def run(args, config, njconfig):
             print("\n### End NetJobs Output ###")
 
         allResults = getAllTestResults(args.outputParent)
-        allPassed, isDone = compareResultLatencies(allResults, args.targetLatency,
-            args.fuzziness)
+        allPassed, isDone = compareResultLatencies(allResults,
+            args.targetLatency, args.fuzziness)
+
+        testInfo.updatePostTest(args.outputParent)
+
+        logWriter.updateLog(testInfo, run)
+
+        sufficientIOPS = testAchievedIOPS(testInfo, args.iops_tolerance)
 
         if args.verbose:
-            print("\nDid all targets achieve the target latency? {}.\n".format("Yes" if allPassed else "No"))
+            print("\nDid all targets achieve the target latency? {}.".format(
+                "Yes" if allPassed else "No"))
+            print("Did all targets achieve sufficient IOPS? {}.\n".format(
+                "Yes" if sufficientIOPS else "No"))
             print("Archiving output and VDbench configurations.\n")
 
         archiveContents(args.outputParent, run)
@@ -379,18 +529,35 @@ def run(args, config, njconfig):
         else:
             consecutiveFailures += 1
             if consecutiveFailures >= args.consecutive_failures:
-                print("--- Notice: VDbench failed to achieve the target latency "
-                    "{}/{} consecutive time(s). Aborting run.".format(
-                        consecutiveFailures, args.consecutive_failures))
+                message = "VDbench failed to achieve the target latency {}/{} consecutive time(s). Aborting run.".format(
+                    consecutiveFailures, args.consecutive_failures)
+                print("--- Notice: {}".format(message))
+                logWriter.logSignOff(message)
                 return
             elif args.verbose:
-                print("Number of consecutive failures: {}/{}.".format(consecutiveFailures, args.consecutive_failures))
+                print("Number of consecutive failures: {}/{}.".format(
+                    consecutiveFailures, args.consecutive_failures))
+
+        if not sufficientIOPS:
+            message = "VDbench failed to achieve requested IOPS within tolerance ({}). Requested IOPS is too high. Aborting run.".format(
+                args.iops_tolerance)
+            print("--- Notice: {}".format(message))
+            logWriter.logSignOff(message)
+            return
 
         # Finish if sweet spot found.
         if isDone:
-            print("--- Notice: desired latency (targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness) --> {min} <= x <= {max}) found. Run finished.".format(
-                min=args.targetLatency * (1.0 - args.fuzziness), max=args.targetLatency * (1.0 + args.fuzziness)))
+            message = "Desired latency (targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness) --> {min} <= x <= {max}) found. Run complete.".format(
+            min=args.targetLatency * (1.0 - args.fuzziness),
+            max=args.targetLatency * (1.0 + args.fuzziness))
+            print("--- Notice: {}".format(message))
+            logWriter.logSignOff(message)
             return
+
+    # Max runs reached.
+    message = "Max runs ({}) reached. Run complete.".format(args.max_runs)
+    print("--- Notice: {}".format(message))
+    logWriter.logSignOff(message)
 
 # Main.
 def main():
@@ -404,13 +571,15 @@ def main():
             args.configDir))
         print("> Output directory: {}".format(args.outputParent))
         print("> NetJobs work folder: {}".format(args.workFolder))
+        print("> Log file: {}".format(args.logPath))
         print("> Target latency: {}ms".format(args.targetLatency))
         print("> Fuzziness: {}".format(args.fuzziness))
         print("> Maximum runs: {}".format(args.max_runs))
         print("> Success multiplier: {}".format(args.success_multiplier))
         print("> Failure multiplier: {}".format(args.failure_multiplier))
         print("> NetJobs timeout: {}s".format(args.timeout))
-        print("> Aborting after {} consecutive failures".format(args.consecutive_failures))
+        print("> Aborting after {} consecutive failures".format(
+            args.consecutive_failures))
 
     config = readConfig(args.configFile)
 
@@ -424,10 +593,17 @@ def main():
     njconfig = makeNetJobsConfig(args.workFolder, args.timeout,
         config["targets"], config["command"], args.configFile)
 
-    print("Starting main run...\n")
+    testInfo = TestInfo(args.configDir)
 
-    # Done with setup.
-    run(args, config, njconfig)
+    try:
+        with open(args.logPath, "w", newline="") as log:
+            logWriter = LogWriter(log)
+            logWriter.writeHeader()
+            print("Log file saved as: {}\n".format(args.logPath))
+            # Done with setup.
+            run(args, config, njconfig, testInfo, logWriter)
+    except IOError as e:
+        raise e
 
 if __name__ == "__main__":
     main()
