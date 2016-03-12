@@ -1,0 +1,27 @@
+# General
+dedupratio=2
+dedupunit=4k
+compratio=1.5
+
+# SDs
+luns=lun1,lun2,lun3
+openflags=o_direct
+
+# WDs
+wdcount=1
+xfersize=4k
+seekpct=100
+rdpct=75
+
+# RDs
+iorate=1000
+format=yes
+elapsed=60
+interval=1
+
+# Distribution
+hotspotnum=10
+hotspotcap=25
+hotspotiopct=10
+disttype=gaussian
+distribution=1
