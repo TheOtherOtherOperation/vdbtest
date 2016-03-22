@@ -11,7 +11,9 @@ import argparse
 import os.path
 import os
 import re
+import statistics
 import textwrap
+import random
 import numpy as np
 import scipy as sp
 import matplotlib as mpl
@@ -20,6 +22,7 @@ from collections import OrderedDict
 
 DEFAULT_MAJOR_DELIMITER = " *= *"
 DEFAULT_MINOR_DELIMITER = " *, *"
+DEFAULT_MONTE_CARLO_SAMPLES = 200000
 
 #
 # Helper dictionaries for single-entry input parsing.
@@ -39,7 +42,7 @@ validators = {
     "hotspotnum": lambda v: int(v) >= 0,
     "hotspotcap": lambda v: 0 <= float(v) <= 100,
     "hotspotiopct": lambda v: 0 <= float(v) <= 100,
-    "disttype": lambda v: re.match("(even)|(gaussian)|(custom)", v.lower())
+    "disttype": lambda v: re.match("(even)|(gaussian)", v.lower())
 }
 # Dictionary of processing lambdas.
 processors = {
@@ -71,7 +74,7 @@ messages = {
     "hotspotnum": 'Key "hotspotnum" requires nonnegative integer number of hotspots.',
     "hotspotcap": 'Key "hotspotcap" requires percentage in range [0, 100].',
     "hotspotiopct": 'Key "hotspotiopct" requires percentage in range [0, 100].',
-    "disttype": 'Key "disttype" must be one of [even, gaussian, custom].'
+    "disttype": 'Key "disttype" must be one of [even, gaussian].'
 }
 
 #
@@ -207,6 +210,12 @@ def getArgs():
         default=DEFAULT_MINOR_DELIMITER,
         help='minor delimiter regex used in configuration file (default "{}"")'.format(
             DEFAULT_MINOR_DELIMITER))
+    parser.add_argument("-c", "--sample-count", type=int,
+        default=DEFAULT_MONTE_CARLO_SAMPLES,
+        help="number of samples to generate when using Monte Carlo method "
+        "to compute distributions (default {}); setting sample size < 10000 "
+        "is strongly discourage".format(
+            DEFAULT_MONTE_CARLO_SAMPLES))
 
     args = parser.parse_args()
 
@@ -234,6 +243,10 @@ def getArgs():
             DEFAULT_MAJOR_DELIMITER, DEFAULT_MINOR_DELIMITER))
         args.major_delimiter = DEFAULT_MAJOR_DELIMITER
         args.minor_delimiter = DEFAULT_MINOR_DELIMITER
+    # Check sample count.
+    if args.sample_count < 10000:
+        print("Warning: setting sample size < 10000 is strongly discouraged. "
+            "Errors and unspecified behavior may occur.")
 
     return args
 
@@ -267,7 +280,7 @@ def parseInput(inPath, major_del=DEFAULT_MAJOR_DELIMITER,
         "hotspotnum": None,          # Number of hotspots
         "hotspotcap": None,          # Total capacity percent for all hotspots
         "hotspotiopct": None,        # Percent of IO for ALL hotspots
-        "disttype": None             # Distribution type: even, gaussian, custom
+        "disttype": None             # Distribution type: even, gaussian
 
         #
         # Added inline only if needed
@@ -284,7 +297,6 @@ def parseInput(inPath, major_del=DEFAULT_MAJOR_DELIMITER,
         #       ------------------------------------------
         #     - even      | WIDTH
         #     - gaussian  | MEAN, STANDARD_DEVIATION
-        #     - custom    | HS_1_pct, HS_2_pct, ...
     })
 
     with open(inPath, "r") as inFile:
@@ -311,10 +323,10 @@ def parseInput(inPath, major_del=DEFAULT_MAJOR_DELIMITER,
     for k, v in config.items():
         if not v:
             incompletes.append(k)
-        if (k == "disttype" and (v == "gaussian" or v == "custom")
+        if (k == "disttype" and v == "gaussian"
             and not "distribution" in config.keys()):
-            incompletes.append("distribution (required when disttype is "
-                "gaussian or custom")
+            incompletes.append("distribution required when disttype is "
+                "gaussian")
         if verbose:
             print("{}={}".format(k, str(v)))
     if len(incompletes) > 0:
@@ -388,7 +400,6 @@ def parseListHelper(key, values, line, config):
     # Distribution specifications:
     #     - even: [] WIDTH
     #     - gaussian: [MEAN, STANDARD_DEVIATION]
-    #     - custom: [HS_1_pct, HS_2_pct, ...]
     elif key == "distribution":
         distType = config["disttype"]
         if distType == "even":
@@ -406,25 +417,6 @@ def parseListHelper(key, values, line, config):
             except ValueError as e:
                 printBadLine(line,
                     custom="Value {} is not a valid standard deviation.".format(v))
-        elif distType == "custom":
-            if len(values) != config["hotspotnum"]:
-                printBadLine(line,
-                    custom='Number of distribution percentages ({}) does not equal number of hotspots ({}).'.format(
-                        len(values), config["hotspotnum"]))
-            total = 0.0
-            for v in values:
-                try:
-                    i = float(v)
-                    if i < 0.0 or i > 100.0:
-                        printBadLine(line,
-                            custom="Value {} is not in range [0, 100].".format(v))
-                    total += i
-                except ValueError as e:
-                    printBadLine(line,
-                        custom="Value {} is not a valid perentage.".format(v))
-                if total > 100.0:
-                    printBadLine(line,
-                        custom="Sum of distribution percentages exceeds 100 percent.")
         try:
             config["distribution"] = list(map(float, values))
         except ValueError as e:
@@ -489,7 +481,7 @@ def makeSDs(config):
 
 # Create skews -- percentage of allotted hotspot IO percentage that goes to
 # each hotspot.
-def makeSkews(config):
+def makeSkews(args, config, graph=False):
     skews = []
     mode = config["disttype"]
     hsCount = config["hotspotnum"]
@@ -503,51 +495,215 @@ def makeSkews(config):
 
     # Gaussian
     elif mode == "gaussian":
-        # Mean: percentage of IOs / number of hotspots
-        mu = ioPct / hsCount
-        print(mu)
-        # Standard deviation as a percentage of mean: user-tunable
-        dev = config["distribution"][0]
-        skews = getGaussianSamples(mu, sigma, hsCount, ioPct)
+        sigma = config["distribution"][0]
+        skews = getGaussianSkews(0, sigma, args.sample_count, hsCount, ioPct)
 
-    # Custom
-    elif mode == "custom":
-        skews = [0] * hsCount # TODO
+    # Graph if requested.
+    if args.graph:
+        if mode == "gaussian":
+            graphGaussianSkews(skews, 1000)
 
     return skews
 
-# Generate n samples from a Gaussian distribution normalized to a specific
-# value.
+# Use Monte Carlo method to determine the skews for the hotspots by generating
+# sampleCount samples in the Gaussian distribution f(X | mu, sigma^2) and
+# determining what the probability is of a sample ending up in each bucket.
 #
-# @param mean Mean average value we want for samples.
-# @param dev Standard deviation *as a percentage of the mean*. E.g. if dev = 5,
-#            the standard deviation for the normal distribution will be
-#            specified as mu * 0.5.
-# @param count Number of samples to generate.
-# @param target Target sum for all samples. Samples will be normalized against
-#               this value so that the sum of all samples returned equals target
-#               (allowing for small floating-point errors).
+# @param mean Mean average value we want for samples in the normal distribution.
+# @param dev Standard deviation for the normal distribution.
+# @param sampleCount Number of samples to generate.
+# @param hSCount Number of hotspots to generate.
+# @param ioPct Percentage of total IOs to split among skews (ioPct * skew).
+# @param stdDevs Maximum distance from the mean we want to use in calculating
+#        our hotspot buckets. If None, the maximum distance will be calculated
+#        programatically by splitting the range between the smallest and
+#        largest samples.
+#            - Set to 3.0 by default since for a random variable with a
+#              standard normal distribution, 99.7% of samples fall within
+#              3 standard deviations of the mean, via the 68-95-99.7 rule.
+def getGaussianSkews(mu, sigma, sampleCount, hsCount, ioPct, stdDevs=3.0):
+    # Generate many samples sorted by natural ordering.
+    samples = getGaussianSamples(mu, sigma, sampleCount)
+
+    # Calculate the hotspot bucket boundaries.
+    hsRanges = []
+    
+    # If stdDevs is None or <= 0, calculate based on the range between the
+    # smallest and largest samples.
+    if stdDevs == None or stdDevs <= 0.0:
+        distMin = min(samples)
+        distMax = max(samples)
+    else:
+        distMin = mu - (stdDevs * sigma)
+        distMax = mu + (stdDevs * sigma)
+
+    # Determine number of samples in each bucket.
+    buckets = getBucketCounts(samples, distMin, distMax, hsCount)
+
+    # Determine skews.
+    bucketSum = sum(buckets)
+    skews = [ioPct * (b / bucketSum) for b in buckets]
+
+    return skews
+
+# Helper function for the Gaussian sampling procedures that returns the buckets
+# for a given *sorted* collection of samples.
 #
-def getGaussianSamples(mu, dev, count, target):
-    # sigma = (dev/100) * mu
-    sigma = dev
-    samples = np.random.normal(mu, sigma, count)
-    sampleSum = sum(samples)
-    ratio = target / sampleSum
-    return [(ratio * s) for s in samples]
+# @param samples Sorted list of samples to count for the buckets.
+# @param distMin Minimum sample value we care about. Samples < distMin are
+#                ignored.
+# @param distMax Maximum sample value we care about. Samples >= distMax are
+#                ignored.
+# @param bucketCount Number of buckets to generate.
+# @return List of buckets containing the number of samples in each.
+def getBucketCounts(samples, distMin, distMax, bucketCount):
+    distRange = abs(distMax - distMin)
+    assert distRange > 0, "distRange = 0"
+    assert bucketCount > 0, "bucketCount = 0"
+    distStride = float(distRange) / bucketCount
+    # Calculate bucket boundaries.
+    bucketBounds = list(np.arange(distMin, distMax, distStride))
+
+    # Sanity check to make sure we generated the right number of buckets.
+    assert len(bucketBounds) == bucketCount, "Generated wrong number of buckets."
+
+    # Determine number of samples in each bucket.
+    buckets = []
+    sampleIt = 0
+
+    for bucketIt in range(len(bucketBounds)):
+        buckets.append(0)
+        bucketMin = bucketBounds[bucketIt]
+        bucketMax = distMax if bucketIt >= len(bucketBounds)-1 else bucketBounds[bucketIt + 1]
+
+        # Advance past samples below the current range.
+        while samples[sampleIt] < bucketMin and sampleIt < len(samples):
+            sampleIt += 1
+
+        # Since the samples should already be sorted, we only need to consider
+        # these in order.
+        while samples[sampleIt] < bucketMax:
+            buckets[bucketIt] += 1
+            sampleIt += 1
+
+    return buckets
+
+# Helper function for generating a sorted list of samples from a Gaussian distribution.
+def getGaussianSamples(mu, sigma, sampleCount):
+    samples = np.random.normal(mu, sigma, sampleCount)
+    samples.sort()
+    return samples
 
 # Graph a distribution using matplotlib.
-def graphDistribution():
-    mu, sigma = 0, 0.1 # mean and standard deviation
-    s = np.random.normal(mu, sigma, 1000)
-    count, bins, ignored = plt.hist(s, 30, normed=True)
-    plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) *
-        np.exp( - (bins - mu)**2 / (2 * sigma**2) ), linewidth=2, color='r')
-    plt.show()
+#
+# @param samples Samples from the distribution.
+# @param binCount Number of bins for the histogram.
+# @param mu Mean of the distribution. If None, will be determined automatically
+#           from the mean of samples.
+# @param sigma Standard deviation of the distribution. If None, will be
+#           determined automatically from the standard deviation of samples.
+# @param normed Whether or not to normalize the output.
+def graphGaussianDistribution(samples, binCount, mu=None, sigma=None, normed=True):
+    if not mu:
+        mu = statistics.mean(samples)
+    if not sigma:
+        sigma = statistics.stdev(samples)
+
+    count, bins, ignored = plt.hist(samples, binCount, normed=normed)
+    gaussianPDF = (lambda mu, sigma: 1/(sigma * np.sqrt(2 * np.pi)) *
+        np.exp( - (bins - mu)**2 / (2 * sigma**2) ) )
+    plt.plot(bins, gaussianPDF(mu, sigma), linewidth=2, color='r')
+    plt.draw()
+
+# Graph the skews distribution histrogram using matplotlib.
+#
+# @param skews Skews distribution.
+# @param sampleScale Amount by which to scale skews values.
+# @param lineFunc Function of the secondary line to draw.
+# @param normed Whether or not to normalize the output.
+def graphGaussianSkews(skews, sampleScale, lineFunc=None, normed=True):
+    samples = []
+    for i in range(len(skews)):
+        for j in range(int(skews[i] * sampleScale)):
+            samples.append(i)
+    graphGaussianDistribution(samples, len(skews))
+
+# Use Monte Carlo method to determine the ranges for the hotspots by generating
+# 2 * sampleCount samples in the Gaussian distribution f(X | mu, sigma^2) and
+# counting the samples that sit above the mean.
+#
+# @param mean Mean average value we want for samples in the normal distribution.
+# @param dev Standard deviation for the normal distribution.
+# @param halfCount One-half the number of samples to generate. This number
+#                  will be doubled so that 2 * halfCount samples are generated.
+# @param hSCount Number of hotspots to generate.
+# @param capacity Percentage of total capacity to split among all hotspots.
+# @param stdDevs Maximum distance from the mean we want to use in calculating
+#        our hotspot buckets. If None, the maximum distance will be calculated
+#        programatically by splitting the range between the smallest and
+#        largest samples.
+#            - Set to 3.0 by default since for a random variable with a
+#              standard normal distribution, 99.7% of samples fall within
+#              3 standard deviations of the mean, via the 68-95-99.7 rule.
+def getGaussianHotspotRanges(mu, sigma, halfCount, hsCount, capacity, stdDevs=3.0):  
+    # Calculate sizes via uniform-random sampling.
+    sizes = [random.random() for i in range(hsCount)]
+    random.shuffle(sizes)
+    partSum = sum(sizes)
+    for i in range(len(sizes)):
+        sizes[i] = capacity * (sizes[i] / partSum)
+
+    # Calculate positions from a Gaussian distribution. In order to skew
+    # the positions near the beginning of the disk, we generate double the
+    # number of input samples and only count those that are above the mean.
+    sampleCount = 2 * halfCount
+
+    # Generate many samples sorted by natural ordering.
+    samples = getGaussianSamples(mu, sigma, sampleCount)
+
+    # Calculate bucket boundaries. Only consider samples that are above the
+    # mean.
+    distMin = min(filter(lambda s: s >= mu, samples))
+    if stdDevs == None or stdDevs <= 0.0:
+        distMax = max(samples)
+    else:
+        distMax = mu + (stdDevs * sigma)
+
+    buckets = getBucketCounts(samples, distMin, distMax, hsCount)
+    random.shuffle(buckets)
+
+    # Determine start positions.
+    bucketSum = sum(buckets)
+    positions = [100 *(b / bucketSum) for b in buckets]
+
+    # Sanity check to make sure we generated the same number of sizes and
+    # positions.
+    assert len(sizes) == len(positions), "Generated an unequal number of sizes and positions."
+    
+    # Make hotspots.
+    hotspots = []
+    hsSum = 0
+    for i in range(len(sizes)):
+        hsSize = sizes[i] if hsSum + sizes[i] <= capacity else capacity - hsSum
+        hsStart = positions[i]
+        # Check for overlap. If there is, we just push the hotspot forward to
+        # make them adjacent.
+        if i > 0 and hsStart < hotspots[i-1][1]:
+            hsStart = hotspots[i-1][1]
+        hsEnd = hsStart + hsSize
+        # Check to make sure hsEnd isn't out of bounds.
+        if hsEnd > 100:
+            hsEnd = 100
+        hotspots.append((hsStart, hsEnd))
+        hsSum += hsEnd - hsStart
+        if hsEnd == 100:
+            break
+
+    return hotspots
 
 # Create hotspot distribution -- ranges for each hotspot such that the sum
 # of their sizes eq
-def makeHotspots(config):
+def makeHotspots(args, config):
     hotspots = []
     mode = config["disttype"]
     hsCount = config["hotspotnum"]
@@ -570,23 +726,18 @@ def makeHotspots(config):
 
     # Gaussian
     elif mode == "gaussian":
-        hotspots = [(0, 0)] * hsCount # TODO
-    # Custom
-    elif mode == "custom":
-        hotspots = [(0, 0)] * hsCount # TODO
-    
-    for i in range(config["hotspotnum"]):
-        hotspots.append((0, 0)) # TODO
+        sigma = config["distribution"][0]
+        hotspots = getGaussianHotspotRanges(0, sigma, args.sample_count, hsCount, hsSpace)
 
     return hotspots
 
 # Make workload definitions.
-def makeWDs(config):
+def makeWDs(args, config):
     wdList = []
     wdCount = config["wdcount"]
     hsCount = config["hotspotnum"]
-    skews = makeSkews(config)
-    hotspots = makeHotspots(config)
+    skews = makeSkews(args, config)
+    hotspots = makeHotspots(args, config)
     total = wdCount + hsCount
     for i in range(total):
         wdf = WDFactory()
@@ -641,7 +792,7 @@ def buildOutput(args, config, verbose=False):
         outFile.writelines(lines)
 
         # WDs and distribution
-        lines = makeWDs(config)
+        lines = makeWDs(args, config)
         outFile.writelines(lines)
 
         # RDs
@@ -650,24 +801,24 @@ def buildOutput(args, config, verbose=False):
 
 # Main.
 def main():
-    verbose = False
-
     args = getArgs()
 
     if args.verbose:
-        verbose = True
         print("Verbose logging enabled.\n")
 
     try:
         config = parseInput(args.inPath, major_del=args.major_delimiter,
-            minor_del=args.minor_delimiter, verbose=verbose)
+            minor_del=args.minor_delimiter, verbose=args.verbose)
     except IOError as e:
         raise e
 
     try:
-        buildOutput(args, config, verbose=verbose)
+        buildOutput(args, config, verbose=args.verbose)
     except IOError as e:
         raise e
+
+    if args.graph:
+        plt.show()
 
 if __name__ == "__main__":
     main()
