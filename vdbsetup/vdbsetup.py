@@ -18,11 +18,59 @@ import numpy as np
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import pylab
 from collections import OrderedDict
 
 DEFAULT_MAJOR_DELIMITER = " *= *"
 DEFAULT_MINOR_DELIMITER = " *, *"
 DEFAULT_MONTE_CARLO_SAMPLES = 200000
+DEFAULT_SAMPLE_SCALE = 10000
+
+INPUT_TEMPLATE_CONTENT = """#
+# vdbsetup input file example
+#
+
+#
+# General
+#
+dedupratio=2
+dedupunit=4k
+compratio=1.5
+
+#
+# SDs
+#
+luns=lun1,lun2,lun3
+# Optional: o_direct provided by default
+# openflags=
+
+#
+# WDs
+#
+wdcount=1
+xfersize=4k
+seekpct=100
+rdpct=75
+
+#
+# RDs
+#
+iorate=1000
+format=yes
+elapsed=60
+interval=1
+threads=2
+
+#
+# Distribution
+#
+hotspotnum=10
+hotspotcap=25
+hotspotiopct=10
+disttype=gaussian
+# Note: only required if disttype=gaussian
+distribution=1,1
+"""
 
 #
 # Helper dictionaries for single-entry input parsing.
@@ -37,6 +85,7 @@ validators = {
     "rdpct": lambda v: 0 <= float(v) <= 100,
     "iorate": lambda v: float(v) > 0,
     "format": lambda v: re.match("(yes)|(no)", v.lower()),
+    "threads": lambda v: int(v) > 0,
     "elapsed": lambda v: int(v) > 0,
     "interval": lambda v: int(v) > 0,
     "hotspotnum": lambda v: int(v) >= 0,
@@ -53,6 +102,7 @@ processors = {
     "rdpct": lambda v: float(v),
     "iorate": lambda v: float(v),
     "format": lambda v: v.lower(),
+    "threads": lambda v: int(v),
     "elapsed": lambda v: int(v),
     "interval": lambda v: int(v),
     "hotspotnum": lambda v: int(v),
@@ -69,6 +119,7 @@ messages = {
     "rdpct": 'Key "rdpct" requires percentage in range [0, 100].',
     "iorate": 'Key "iorate" requires positive IOPS value.',
     "format": 'Key "format" must be one of [yes, no].',
+    "threads": 'Key "threads" requires positive integer queue depth.',
     "elapsed": 'Key "elapsed" requires positive integer number of seconds.',
     "interval": 'Key "interval" requires positive integer number of seconds.',
     "hotspotnum": 'Key "hotspotnum" requires nonnegative integer number of hotspots.',
@@ -76,6 +127,75 @@ messages = {
     "hotspotiopct": 'Key "hotspotiopct" requires percentage in range [0, 100].',
     "disttype": 'Key "disttype" must be one of [even, gaussian].'
 }
+multiValidators = {
+    "luns": lambda v: len(v) > 0,
+    "openflags": lambda v: len(v) > 0,
+    "distribution": lambda v:
+        config["disttype"] == "gaussian" and
+        len(v) == 2 and
+        len(list(filter(lambda w: float(w) >= 0, v))) == 2
+}
+multiProcessors = {
+    "luns": lambda v: v,
+    "openflags": lambda v: v,
+    "distribution": lambda v: list(map(float, v))
+}
+multiMessages = {
+    "luns": 'Key "luns" requires at least one LUN',
+    "openflags": 'Key "openflags" requires at least one flag.',
+    "distribution": 'Key "distribution" is only valid for Gaussian '
+                    'distributions, and keys "hotspotnum" and "disttype" must '
+                    'be set first. Values must be of form '
+                    '"SKEW_STD_DEV,RANGE_STD_DEV", where both standard '
+                    'deviations are nonnegative floating point values.'
+}
+
+# Uses an OrderedDict because certain parameters must be specified before
+# other parameters.
+config = OrderedDict({
+    # General
+    "dedupratio": None,          # Deduplication ratio
+    "dedupunit": None,           # Deduplication unit
+    "compratio": None,           # Compression ratio
+
+    # SDs
+    "luns": None,                # Luns, list OK
+
+    # WDs
+    "wdcount": None,             # Number of workloads
+    "xfersize": None,            # Block size
+    "seekpct": None,             # Percent random
+    "rdpct": None,               # Percent read (vs. write)
+
+    # RDs
+    "iorate": None,              # IOPS
+    "format": None,              # Pre-format lun
+    "threads": None,             # Qeueue depth
+    "elapsed": None,             # Duration
+    "interval": None,            # Update frequency
+
+    # Distribution
+    "hotspotnum": None,          # Number of hotspots
+    "hotspotcap": None,          # Total capacity percent for all hotspots
+    "hotspotiopct": None,        # Percent of IO for ALL hotspots
+    "disttype": None             # Distribution type: even, gaussian
+
+    #
+    # Added inline only if needed
+    #
+
+    # "openflags": []
+    #     - open flags for SDs
+    #     - o_direct provided by default as block devices require it
+
+    # "distribution": []
+    #     - parameters for the distribution type
+    #     
+    #       Type      | Params
+    #       ------------------------------------------
+    #     - even      | WIDTH
+    #     - gaussian  | STANDARD_DEVIATION_SKEW, STANDARD_DEVIATION_RANGE
+})
 
 #
 # Factories.
@@ -97,7 +217,7 @@ class Factory:
         if not key in self.params:
             self.addKey(key)
         if len(values) < 1:
-            raise ValueError("Error: no values passed for key {}.".format(
+            raise ValueError('Error: no values passed for key "{}".'.format(
                 key))
         elif len(values) == 1:
             self.params[key] = values[0]
@@ -126,17 +246,17 @@ class Factory:
         partials = []
         for k, v in self.params.items():
             if v == None:
-                raise Exception("Error: key {} has value None.".format(k))
+                raise Exception('Error: key "{}" not assigned (value None).'.format(k))
             if isinstance(v, list) or isinstance(v, tuple):
                 if len(v) == 0:
-                    raise Exception("Error: key {} is empty.".format(k))
+                    raise Exception('Error: key {} has length 0.'.format(k))
                 if len(v) == 1:
-                    partial = "{}={}".format(k, v[0])
+                    partial = "{}={}".format(k, truncate(v[0]))
                 else:
                     partial = "{}=({})".format(
-                        k, ",".join([str(w) for w in v]))
+                        k, ",".join([str(truncate(w)) for w in v]))
             else:
-                partial = "{}={}".format(k, v)
+                partial = "{}={}".format(k, truncate(v))
             partials.append(partial)
 
         return ",".join(partials)
@@ -163,7 +283,7 @@ class WDFactory(Factory):
             "sd",
             "xfersize",
             "seekpct",
-            "rdpct",
+            "rdpct"
         ])
 
     def addRange(self, r):
@@ -175,6 +295,7 @@ class RDFactory(Factory):
             "wd",
             "iorate",
             "format",
+            "threads",
             "elapsed",
             "interval"
         ])
@@ -184,22 +305,31 @@ class RDFactory(Factory):
 #
 
 # Get CLI arguments.
-def getArgs():
+def getArgs(customArgs=None):
     parser = argparse.ArgumentParser(
         description="create VDbench hotspot-distribution configuration files")
+
     # Positional.
-    parser.add_argument("inPath", type=str,
+    parser.add_argument("inPath", type=str, nargs="?",
+        default=None,
         help="where to find the input file")
-    parser.add_argument("outPath", type=str,
+    parser.add_argument("outPath", type=str, nargs="?",
+        default=None,
         help="where to output the configuration file")
 
     # Optional.
+    parser.add_argument("--make-template", action="store_true",
+        help="create an example input file and exit")
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
-    parser.add_argument("-g", "--graph", action="store_true",
-        help="enable graph display of the resulting hotspot distribution")
+    parser.add_argument("-gs", "--graph-skews", action="store_true",
+        help="enable graph display of the hotspot skews")
+    parser.add_argument("-gr", "--graph-ranges", action="store_true",
+        help="enale graph display of the hotspots ranges")
     parser.add_argument("--no-overwrite", action="store_true",
         help="don't overwrite output file if it already exists")
+    parser.add_argument("--no-shuffle", action="store_true",
+        help="disable random hotspot permutation")
     parser.add_argument("--header", type=str,
         help="add a comment header")
     parser.add_argument("-M", "--major-delimiter", type=str,
@@ -217,7 +347,20 @@ def getArgs():
         "is strongly discourage".format(
             DEFAULT_MONTE_CARLO_SAMPLES))
 
-    args = parser.parse_args()
+    if customArgs:
+        args = parser.parse_args(customArgs)
+    else:
+        args = parser.parse_args()
+
+    # If make_template is set, we can just return without the extra checks,
+    # since we won't need any of them.
+    if args.make_template:
+        return args
+
+    # Otherwise, make sure the inPath and outPath were actually set.
+    if not args.inPath or args.inPath == "" or not args.outPath or args.outPath == "":
+        parser.print_help()
+        exit()
 
     args.outPath = os.path.realpath(args.outPath)
 
@@ -253,51 +396,6 @@ def getArgs():
 # Parse the input file.
 def parseInput(inPath, major_del=DEFAULT_MAJOR_DELIMITER,
     minor_del=DEFAULT_MINOR_DELIMITER, verbose=False):
-    # Uses an OrderedDict because certain parameters must be specified before
-    # other parameters.
-    config = OrderedDict({
-        # General
-        "dedupratio": None,          # Deduplication ratio
-        "dedupunit": None,           # Deduplication unit
-        "compratio": None,           # Compression ratio
-
-        # SDs
-        "luns": None,                # Luns, list OK
-
-        # WDs
-        "wdcount": None,             # Number of workloads
-        "xfersize": None,            # Block size
-        "seekpct": None,             # Percent random
-        "rdpct": None,               # Percent read (vs. write)
-
-        # RDs
-        "iorate": None,              # IOPS
-        "format": None,              # Pre-format lun
-        "elapsed": None,             # Duration
-        "interval": None,            # Update frequency
-
-        # Distribution
-        "hotspotnum": None,          # Number of hotspots
-        "hotspotcap": None,          # Total capacity percent for all hotspots
-        "hotspotiopct": None,        # Percent of IO for ALL hotspots
-        "disttype": None             # Distribution type: even, gaussian
-
-        #
-        # Added inline only if needed
-        #
-
-        # "openflags": []
-        #     - open flags for SDs
-        #     - o_direct provided by default as block devices require it
-
-        # "distribution": []
-        #     - parameters for the distribution type
-        #     
-        #       Type      | Params
-        #       ------------------------------------------
-        #     - even      | WIDTH
-        #     - gaussian  | MEAN, STANDARD_DEVIATION
-    })
 
     with open(inPath, "r") as inFile:
         for realLine in inFile:
@@ -339,14 +437,8 @@ def parseInput(inPath, major_del=DEFAULT_MAJOR_DELIMITER,
 
 # Evaluate a single input line.
 def parseLine(key, values, line, config):
-    # Keys for which lists are acceptable.
-    listKeys = [
-        "luns",
-        "openflags",
-        "distribution"
-    ]
-
-    if key in listKeys:
+    # Keys for which lists are valid.
+    if key in multiValidators.keys():
         parseListHelper(key, values, line, config)
     else:
         parseSingleHelper(key, values, line, config)
@@ -364,7 +456,7 @@ def parseSingleHelper(key, values, line, config):
 
     # Validate the key according to its specific criteria.
     try:
-        # Short-circuits if no validator for this key.
+        # Short-circuits if key is unchecked.
         if key in validators.keys() and not validators[key](value):
             printBadLine(line, custom=messages[key])
     except ValueError as e:
@@ -387,45 +479,15 @@ def parseListHelper(key, values, line, config):
     # Validate the key exists.
     validateKey(key, line, config)
 
-    # Get the lists out of the way first:
-    #     - luns
-    #     - openflags
-    if key == "luns":
-        if len(values) < 1:
-            printBadLine(line, custom="No LUNs specified.")
-        config["luns"] = values
-    elif key == "openflags":
-        config["openflags"] = values
+    # Validate the key according to its specific criteria.
+    try:
+        # Short-circuits if key is unchecked.
+        if key in multiValidators.keys() and not multiValidators[key](values):
+            printBadLine(line, custom=multiMessages[key])
+    except ValueError as e:
+        printBadLine(line, custom=multiMessages[key])
 
-    # Distribution specifications:
-    #     - even: [] WIDTH
-    #     - gaussian: [MEAN, STANDARD_DEVIATION]
-    elif key == "distribution":
-        distType = config["disttype"]
-        if distType == "even":
-            printBadLine(line,
-                custom="Even distributions do not accept distribution specifications.") 
-        if distType == "gaussian":
-            if len(values) != 1:
-                printBadLine(line,
-                    custom="Gaussian distribution requires exactly one value for standard deviation.")
-            try:
-                v = float(values[0])
-                if v < 0:
-                    printBadLine(line,
-                        custom="Standard deviation cannot be negative.")
-            except ValueError as e:
-                printBadLine(line,
-                    custom="Value {} is not a valid standard deviation.".format(v))
-        try:
-            config["distribution"] = list(map(float, values))
-        except ValueError as e:
-            printBadLine(line,
-                custom="Distribution values must be floating point numbers.")
-
-    # Unknown.
-    else:
-        printBadLine(line, custom='Unrecognized line: {}.'.format(line))
+    config[key] = (multiProcessors[key](values) if key in multiProcessors.keys() else values)
 
 # Validate a key.
 def validateKey(key, line, config):
@@ -463,7 +525,7 @@ def makeCommentHeader(header):
 def makeGeneral(config):
     genList = []
     for k in ["dedupratio", "dedupunit", "compratio"]:
-        genList.append("{}={}\n".format(k, config[k]))
+        genList.append("{}={}\n".format(k, truncate(config[k])))
     return genList
 
 # Create storage definitions.
@@ -499,9 +561,12 @@ def makeSkews(args, config, graph=False):
         skews = getGaussianSkews(0, sigma, args.sample_count, hsCount, ioPct)
 
     # Graph if requested.
-    if args.graph:
-        if mode == "gaussian":
-            graphGaussianSkews(skews, 1000)
+    if args.graph_skews:
+        graphSkews(config, mode, skews)
+
+    # Shuffle.
+    if not args.no_shuffle:
+        random.shuffle(skews)
 
     return skews
 
@@ -518,10 +583,12 @@ def makeSkews(args, config, graph=False):
 #        our hotspot buckets. If None, the maximum distance will be calculated
 #        programatically by splitting the range between the smallest and
 #        largest samples.
-#            - Set to 3.0 by default since for a random variable with a
-#              standard normal distribution, 99.7% of samples fall within
-#              3 standard deviations of the mean, via the 68-95-99.7 rule.
-def getGaussianSkews(mu, sigma, sampleCount, hsCount, ioPct, stdDevs=3.0):
+#            - Set to None by default, which causes the entire sample range
+#              to be considered.
+#            - If using a standard normal distribution, for example, a value of
+#              3.0 captures 99.7% of samples, since 99.7% fall within 3 standard
+#              deviations of the mean, via the 68-95-99.7 rule.
+def getGaussianSkews(mu, sigma, sampleCount, hsCount, ioPct, stdDevs=None):
     # Generate many samples sorted by natural ordering.
     samples = getGaussianSamples(mu, sigma, sampleCount)
 
@@ -594,7 +661,7 @@ def getGaussianSamples(mu, sigma, sampleCount):
     samples.sort()
     return samples
 
-# Graph a distribution using matplotlib.
+# Graph Gaussian skews histogram using matplotlib.
 #
 # @param samples Samples from the distribution.
 # @param binCount Number of bins for the histogram.
@@ -603,7 +670,7 @@ def getGaussianSamples(mu, sigma, sampleCount):
 # @param sigma Standard deviation of the distribution. If None, will be
 #           determined automatically from the standard deviation of samples.
 # @param normed Whether or not to normalize the output.
-def graphGaussianDistribution(samples, binCount, mu=None, sigma=None, normed=True):
+def graphGaussianSkews(samples, binCount, mu=None, sigma=None, normed=True):
     if not mu:
         mu = statistics.mean(samples)
     if not sigma:
@@ -615,18 +682,75 @@ def graphGaussianDistribution(samples, binCount, mu=None, sigma=None, normed=Tru
     plt.plot(bins, gaussianPDF(mu, sigma), linewidth=2, color='r')
     plt.draw()
 
-# Graph the skews distribution histrogram using matplotlib.
+# Graph even skews using matplotlib.
 #
+# @param skews Skews to graph.
+# @param yLim Max value for y-axis.
+def graphEvenSkews(skews, yLim, normed=False):
+    x = range(len(skews))
+    y = np.array(skews)
+    width = 1
+    plt.bar(x, y, width, color="blue")
+    plt.draw()
+    pylab.ylim([0, sum(skews)])
+
+# Graph the skews distribution using matplotlib.
+#
+# @param config Configuration dictionary.
+# @param mode Distribution type: "gaussian" or "even".
 # @param skews Skews distribution.
 # @param sampleScale Amount by which to scale skews values.
-# @param lineFunc Function of the secondary line to draw.
 # @param normed Whether or not to normalize the output.
-def graphGaussianSkews(skews, sampleScale, lineFunc=None, normed=True):
-    samples = []
-    for i in range(len(skews)):
-        for j in range(int(skews[i] * sampleScale)):
-            samples.append(i)
-    graphGaussianDistribution(samples, len(skews))
+def graphSkews(config, mode, skews, sampleScale=DEFAULT_SAMPLE_SCALE, normed=True):
+    plt.figure(1)
+    fig = plt.figure(1)
+    fig.suptitle("Skews - Mode: {}".format(mode))
+    if mode == "gaussian":
+        samples = []
+        for i in range(len(skews)):
+            for j in range(int(skews[i] * sampleScale)):
+                samples.append(i)
+        graphGaussianSkews(np.array(samples), len(skews))
+    elif mode == "even":
+        graphEvenSkews(skews, config['hotspotiopct'])
+    else:
+        print('Error: unknown graph mode "{}".'.format(mode))
+
+# Graph the ranges distribution using matplotlib.
+#
+# @param config Configuration dictionary.
+# @param ranges Range distribution.
+# @param skews Skews distribution.
+# @param normed Whether or not to normalize the output.
+def graphRanges(config, ranges, skews, normed=True):
+    plt.figure(2)
+    fig = plt.figure(2)
+    fig.suptitle("Ranges - Mode: {}".format(config["disttype"]))
+    plt.xlabel("Disk location")
+    plt.ylabel("Percentage of IOs")
+
+    count = config["hotspotnum"]
+    ioPct = config["hotspotiopct"]
+    
+    # Sanity check.
+    assert count == len(ranges) == len(skews), "The number of ranges or skews is incorrect."
+
+    triplets = []
+    for i in range(count):
+        x = ranges[i][0]
+        y = skews[i]
+        w = ranges[i][1]-x
+        triplets.append((x, y, w))
+    triplets.sort(key=lambda t: t[0])
+
+    x = np.array([triplets[i][0] for i in range(count)])
+    y = np.array([triplets[i][1] for i in range(count)])
+    widths = np.array([triplets[i][2] for i in range(count)])
+
+    plt.bar(x, y, widths, color="blue")
+    plt.draw()
+    pylab.xlim([0, 100])
+
 
 # Use Monte Carlo method to determine the ranges for the hotspots by generating
 # 2 * sampleCount samples in the Gaussian distribution f(X | mu, sigma^2) and
@@ -642,13 +766,15 @@ def graphGaussianSkews(skews, sampleScale, lineFunc=None, normed=True):
 #        our hotspot buckets. If None, the maximum distance will be calculated
 #        programatically by splitting the range between the smallest and
 #        largest samples.
-#            - Set to 3.0 by default since for a random variable with a
-#              standard normal distribution, 99.7% of samples fall within
-#              3 standard deviations of the mean, via the 68-95-99.7 rule.
-def getGaussianHotspotRanges(mu, sigma, halfCount, hsCount, capacity, stdDevs=3.0):  
+#            - Set to None by default, which causes the entire sample range
+#              to be considered.
+#            - If using a standard normal distribution, for example, a value of
+#              3.0 captures 99.7% of samples, since 99.7% fall within 3 standard
+#              deviations of the mean, via the 68-95-99.7 rule.
+def getGaussianRangeComponents(mu, sigma, halfCount, hsCount, capacity,
+    stdDevs=None):  
     # Calculate sizes via uniform-random sampling.
     sizes = [random.random() for i in range(hsCount)]
-    random.shuffle(sizes)
     partSum = sum(sizes)
     for i in range(len(sizes)):
         sizes[i] = capacity * (sizes[i] / partSum)
@@ -663,27 +789,36 @@ def getGaussianHotspotRanges(mu, sigma, halfCount, hsCount, capacity, stdDevs=3.
 
     # Calculate bucket boundaries. Only consider samples that are above the
     # mean.
-    distMin = min(filter(lambda s: s >= mu, samples))
+    distMin = mu
     if stdDevs == None or stdDevs <= 0.0:
         distMax = max(samples)
     else:
         distMax = mu + (stdDevs * sigma)
 
     buckets = getBucketCounts(samples, distMin, distMax, hsCount)
-    random.shuffle(buckets)
+    buckets.reverse()
 
     # Determine start positions.
     bucketSum = sum(buckets)
-    positions = [100 *(b / bucketSum) for b in buckets]
+    positions = [100 * (b / bucketSum) for b in buckets]
 
     # Sanity check to make sure we generated the same number of sizes and
     # positions.
-    assert len(sizes) == len(positions), "Generated an unequal number of sizes and positions."
-    
-    # Make hotspots.
+    assert len(sizes) == len(positions) == hsCount, "Generated an unequal number of sizes and positions."
+
+    return sizes, buckets, positions
+
+# Helper function for getGaussianHotspotRanges.
+def buildGaussianRanges(sizes, buckets, positions, hsCount, capacity,
+    noShuffle=False):
+
+    if not noShuffle:
+        random.shuffle(buckets)
+
     hotspots = []
     hsSum = 0
-    for i in range(len(sizes)):
+    # TODO -- FIX ME TKTK
+    for i in range(hsCount):
         hsSize = sizes[i] if hsSum + sizes[i] <= capacity else capacity - hsSum
         hsStart = positions[i]
         # Check for overlap. If there is, we just push the hotspot forward to
@@ -696,15 +831,17 @@ def getGaussianHotspotRanges(mu, sigma, halfCount, hsCount, capacity, stdDevs=3.
             hsEnd = 100
         hotspots.append((hsStart, hsEnd))
         hsSum += hsEnd - hsStart
-        if hsEnd == 100:
+        if hsEnd == 100 or hsSum >= capacity:
             break
+
+    if not noShuffle:
+        random.shuffle(hotspots)
 
     return hotspots
 
-# Create hotspot distribution -- ranges for each hotspot such that the sum
-# of their sizes eq
-def makeHotspots(args, config):
-    hotspots = []
+# Create hotspot range distribution.
+def makeRanges(args, config):
+    ranges = []
     mode = config["disttype"]
     hsCount = config["hotspotnum"]
     wdCount = config["wdcount"]
@@ -722,14 +859,17 @@ def makeHotspots(args, config):
         for i in range(hsCount):
             start = (i * stride) + gapWidth
             end = start + width
-            hotspots.append((start, end))
+            ranges.append((start, end))
 
     # Gaussian
     elif mode == "gaussian":
         sigma = config["distribution"][0]
-        hotspots = getGaussianHotspotRanges(0, sigma, args.sample_count, hsCount, hsSpace)
+        sizes, buckets, positions = getGaussianRangeComponents(0, sigma, args.sample_count,
+            hsCount, hsSpace)
+        ranges = buildGaussianRanges(sizes, buckets, positions, hsCount,
+            hsSpace, noShuffle=args.no_shuffle)
 
-    return hotspots
+    return ranges
 
 # Make workload definitions.
 def makeWDs(args, config):
@@ -737,8 +877,13 @@ def makeWDs(args, config):
     wdCount = config["wdcount"]
     hsCount = config["hotspotnum"]
     skews = makeSkews(args, config)
-    hotspots = makeHotspots(args, config)
+    ranges = makeRanges(args, config)
+
+    # Setup range graph if requested.
+    if args.graph_ranges:
+        graphRanges(config, ranges, skews)
     total = wdCount + hsCount
+    
     for i in range(total):
         wdf = WDFactory()
         wdf.setName("wd{}".format(i+1))
@@ -750,7 +895,7 @@ def makeWDs(args, config):
         if i >= wdCount:
             j = i - wdCount - 1
             wdf.set("skew", skews[j])
-            wdf.addRange(hotspots[j])
+            wdf.addRange(ranges[j])
         wdList.append(wdf.toString() + "\n")
     return wdList
 
@@ -763,6 +908,7 @@ def makeRDs(config):
     rdf.set("wd", "wd*")
     rdf.set("iorate", config["iorate"])
     rdf.set("format", config["format"])
+    rdf.set("threads", config["threads"])
     rdf.set("elapsed", config["elapsed"])
     rdf.set("interval", config["interval"])
     rdList.append(rdf.toString() + "\n")
@@ -799,12 +945,37 @@ def buildOutput(args, config, verbose=False):
         lines = makeRDs(config)
         outFile.writelines(lines)
 
+# If the input is a floating point number, truncate it to three decimal places.
+# If it's an integer (its fractional portion is 0), return it as an integer.
+# Else return it unchanged.
+def truncate(f):
+    if isinstance(f, float):
+        if f.is_integer():
+            return int(f)
+        return "{0:.3f}".format(f)
+    return f
+
+# Create an input file template.
+def makeTemplate():
+    templatePath = "vdbsetup_input_template.txt"
+    with open(templatePath, "w") as f:
+        f.write(INPUT_TEMPLATE_CONTENT)
+    print('Input file example saved as "{}".'.format(templatePath))
+
 # Main.
 def main():
     args = getArgs()
 
     if args.verbose:
         print("Verbose logging enabled.\n")
+
+    if args.make_template:
+        try:
+            makeTemplate()
+        except IOError as e:
+            raise e
+        finally:
+            return
 
     try:
         config = parseInput(args.inPath, major_del=args.major_delimiter,
@@ -817,7 +988,7 @@ def main():
     except IOError as e:
         raise e
 
-    if args.graph:
+    if args.graph_skews or args.graph_ranges:
         plt.show()
 
 if __name__ == "__main__":
