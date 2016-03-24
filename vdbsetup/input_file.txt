@@ -12,6 +12,7 @@ wdcount=1
 xfersize=4k
 seekpct=100
 rdpct=75
+percentdisk=100.0
 
 # RDs
 iorate=1000
@@ -21,8 +22,8 @@ interval=1
 threads=2
 
 # Distribution
-hotspotnum=20
-hotspotcap=25
+hotspotnum=50
+hotspotcap=10
 hotspotiopct=25
 disttype=gaussian
-distribution=1.5,1.5
+distribution=0.75,0.5

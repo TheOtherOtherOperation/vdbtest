@@ -51,6 +51,7 @@ wdcount=1
 xfersize=4k
 seekpct=100
 rdpct=75
+percentdisk=100.0
 
 #
 # RDs
@@ -69,7 +70,7 @@ hotspotcap=25
 hotspotiopct=10
 disttype=gaussian
 # Note: only required if disttype=gaussian
-distribution=1,1
+distribution=0.75,0.5
 """
 
 #
@@ -83,6 +84,7 @@ validators = {
     "wdcount": lambda v: float(v) > 0,
     "seekpct": lambda v: 0 <= float(v) <= 100,
     "rdpct": lambda v: 0 <= float(v) <= 100,
+    "percentdisk": lambda v: 0 <= float(v) <= 100,
     "iorate": lambda v: float(v) > 0,
     "format": lambda v: re.match("(yes)|(no)", v.lower()),
     "threads": lambda v: int(v) > 0,
@@ -91,7 +93,7 @@ validators = {
     "hotspotnum": lambda v: int(v) >= 0,
     "hotspotcap": lambda v: 0 <= float(v) <= 100,
     "hotspotiopct": lambda v: 0 <= float(v) <= 100,
-    "disttype": lambda v: re.match("(even)|(gaussian)", v.lower())
+    "disttype": lambda v: re.match("(even)|(gaussian)|(uniform)", v.lower())
 }
 # Dictionary of processing lambdas.
 processors = {
@@ -100,6 +102,7 @@ processors = {
     "wdcount": lambda v: int(v),
     "seekpct": lambda v: float(v),
     "rdpct": lambda v: float(v),
+    "percentdisk": lambda v: float(v),
     "iorate": lambda v: float(v),
     "format": lambda v: v.lower(),
     "threads": lambda v: int(v),
@@ -117,6 +120,7 @@ messages = {
     "wdcount": 'Key "wdcount" requires positive integer value.',
     "seekpct": 'Key "seekpct" requires percentage in range [0, 100].',
     "rdpct": 'Key "rdpct" requires percentage in range [0, 100].',
+    "percentdisk": 'Key "percentdisk" requires single percentage in range [0, 100].',
     "iorate": 'Key "iorate" requires positive IOPS value.',
     "format": 'Key "format" must be one of [yes, no].',
     "threads": 'Key "threads" requires positive integer queue depth.',
@@ -125,7 +129,7 @@ messages = {
     "hotspotnum": 'Key "hotspotnum" requires nonnegative integer number of hotspots.',
     "hotspotcap": 'Key "hotspotcap" requires percentage in range [0, 100].',
     "hotspotiopct": 'Key "hotspotiopct" requires percentage in range [0, 100].',
-    "disttype": 'Key "disttype" must be one of [even, gaussian].'
+    "disttype": 'Key "disttype" must be one of "even", "gaussian", "uniform".'
 }
 multiValidators = {
     "luns": lambda v: len(v) > 0,
@@ -143,6 +147,7 @@ multiProcessors = {
 multiMessages = {
     "luns": 'Key "luns" requires at least one LUN',
     "openflags": 'Key "openflags" requires at least one flag.',
+                  '"min,max", such that 0 <= min <= max <= 100.'
     "distribution": 'Key "distribution" is only valid for Gaussian '
                     'distributions, and keys "hotspotnum" and "disttype" must '
                     'be set first. Values must be of form '
@@ -166,6 +171,7 @@ config = OrderedDict({
     "xfersize": None,            # Block size
     "seekpct": None,             # Percent random
     "rdpct": None,               # Percent read (vs. write)
+    "percentdisk": None,         # How much of the total disk to use
 
     # RDs
     "iorate": None,              # IOPS
@@ -558,7 +564,13 @@ def makeSkews(args, config, graph=False):
     # Gaussian
     elif mode == "gaussian":
         sigma = config["distribution"][0]
-        skews = getGaussianSkews(0, sigma, args.sample_count, hsCount, ioPct)
+        skews = makeGaussianSkews(sigma, args.sample_count, hsCount, ioPct)
+
+    # Uniform
+    elif mode == "uniform":
+        skews = [random.random() for i in range(hsCount)]
+        skewSum = sum(skews)
+        skews = [ioPct * s / skewSum for s in skews]
 
     # Graph if requested.
     if args.graph_skews:
@@ -574,38 +586,19 @@ def makeSkews(args, config, graph=False):
 # sampleCount samples in the Gaussian distribution f(X | mu, sigma^2) and
 # determining what the probability is of a sample ending up in each bucket.
 #
-# @param mean Mean average value we want for samples in the normal distribution.
 # @param dev Standard deviation for the normal distribution.
 # @param sampleCount Number of samples to generate.
 # @param hSCount Number of hotspots to generate.
 # @param ioPct Percentage of total IOs to split among skews (ioPct * skew).
-# @param stdDevs Maximum distance from the mean we want to use in calculating
-#        our hotspot buckets. If None, the maximum distance will be calculated
-#        programatically by splitting the range between the smallest and
-#        largest samples.
-#            - Set to None by default, which causes the entire sample range
-#              to be considered.
-#            - If using a standard normal distribution, for example, a value of
-#              3.0 captures 99.7% of samples, since 99.7% fall within 3 standard
-#              deviations of the mean, via the 68-95-99.7 rule.
-def getGaussianSkews(mu, sigma, sampleCount, hsCount, ioPct, stdDevs=None):
+def makeGaussianSkews(sigma, sampleCount, hsCount, ioPct):
     # Generate many samples sorted by natural ordering.
-    samples = getGaussianSamples(mu, sigma, sampleCount)
+    samples = getGaussianSamples(0.0, sigma, sampleCount)
 
     # Calculate the hotspot bucket boundaries.
     hsRanges = []
-    
-    # If stdDevs is None or <= 0, calculate based on the range between the
-    # smallest and largest samples.
-    if stdDevs == None or stdDevs <= 0.0:
-        distMin = min(samples)
-        distMax = max(samples)
-    else:
-        distMin = mu - (stdDevs * sigma)
-        distMax = mu + (stdDevs * sigma)
 
     # Determine number of samples in each bucket.
-    buckets = getBucketCounts(samples, distMin, distMax, hsCount)
+    buckets = getBucketCounts(samples, -1.0, 1.0, hsCount)
 
     # Determine skews.
     bucketSum = sum(buckets)
@@ -628,30 +621,24 @@ def getBucketCounts(samples, distMin, distMax, bucketCount):
     assert distRange > 0, "distRange = 0"
     assert bucketCount > 0, "bucketCount = 0"
     distStride = float(distRange) / bucketCount
-    # Calculate bucket boundaries.
-    bucketBounds = list(np.arange(distMin, distMax, distStride))
+    # Calculate bucket boundaries. We do it this way instead of using
+    # np.arrange because we care more about the list being the right length
+    # than about small floating point errors.
+    bucketBounds = [distMin + (distStride * i) for i in range(bucketCount)]
 
     # Sanity check to make sure we generated the right number of buckets.
-    assert len(bucketBounds) == bucketCount, "Generated wrong number of buckets."
+    assert len(bucketBounds) == bucketCount, "Generated wrong number of buckets"
 
     # Determine number of samples in each bucket.
     buckets = []
-    sampleIt = 0
 
     for bucketIt in range(len(bucketBounds)):
         buckets.append(0)
         bucketMin = bucketBounds[bucketIt]
         bucketMax = distMax if bucketIt >= len(bucketBounds)-1 else bucketBounds[bucketIt + 1]
-
-        # Advance past samples below the current range.
-        while samples[sampleIt] < bucketMin and sampleIt < len(samples):
-            sampleIt += 1
-
-        # Since the samples should already be sorted, we only need to consider
-        # these in order.
-        while samples[sampleIt] < bucketMax:
-            buckets[bucketIt] += 1
-            sampleIt += 1
+        # Slow but reliable.
+        buckets[bucketIt] = len(list(filter(lambda s: bucketMin <= s < bucketMax,
+            samples)))
 
     return buckets
 
@@ -756,23 +743,12 @@ def graphRanges(config, ranges, skews, normed=True):
 # 2 * sampleCount samples in the Gaussian distribution f(X | mu, sigma^2) and
 # counting the samples that sit above the mean.
 #
-# @param mean Mean average value we want for samples in the normal distribution.
 # @param dev Standard deviation for the normal distribution.
 # @param halfCount One-half the number of samples to generate. This number
 #                  will be doubled so that 2 * halfCount samples are generated.
 # @param hSCount Number of hotspots to generate.
 # @param capacity Percentage of total capacity to split among all hotspots.
-# @param stdDevs Maximum distance from the mean we want to use in calculating
-#        our hotspot buckets. If None, the maximum distance will be calculated
-#        programatically by splitting the range between the smallest and
-#        largest samples.
-#            - Set to None by default, which causes the entire sample range
-#              to be considered.
-#            - If using a standard normal distribution, for example, a value of
-#              3.0 captures 99.7% of samples, since 99.7% fall within 3 standard
-#              deviations of the mean, via the 68-95-99.7 rule.
-def getGaussianRangeComponents(mu, sigma, halfCount, hsCount, capacity,
-    stdDevs=None):  
+def getGaussianRangeComponents(sigma, halfCount, hsCount, capacity, percentDisk):  
     # Calculate sizes via uniform-random sampling.
     sizes = [random.random() for i in range(hsCount)]
     partSum = sum(sizes)
@@ -785,59 +761,74 @@ def getGaussianRangeComponents(mu, sigma, halfCount, hsCount, capacity,
     sampleCount = 2 * halfCount
 
     # Generate many samples sorted by natural ordering.
-    samples = getGaussianSamples(mu, sigma, sampleCount)
+    samples = getGaussianSamples(0.0, sigma, sampleCount)
 
-    # Calculate bucket boundaries. Only consider samples that are above the
-    # mean.
-    distMin = mu
-    if stdDevs == None or stdDevs <= 0.0:
-        distMax = max(samples)
-    else:
-        distMax = mu + (stdDevs * sigma)
-
-    buckets = getBucketCounts(samples, distMin, distMax, hsCount)
+    buckets = getBucketCounts(samples, 0.0, 1.0, hsCount)
     buckets.reverse()
 
     # Determine start positions.
     bucketSum = sum(buckets)
-    positions = [100 * (b / bucketSum) for b in buckets]
+    positions = []
+    for i in range(hsCount):
+        b = percentDisk * buckets[i] / bucketSum
+        if i > 0:
+            b += positions[i-1]
+        if b < 0.0:
+            b = 0.0
+        elif b > percentDisk:
+            b = percentDisk
+        positions.append(b)
 
     # Sanity check to make sure we generated the same number of sizes and
     # positions.
     assert len(sizes) == len(positions) == hsCount, "Generated an unequal number of sizes and positions."
 
-    return sizes, buckets, positions
+    return sizes, positions
 
-# Helper function for getGaussianHotspotRanges.
-def buildGaussianRanges(sizes, buckets, positions, hsCount, capacity,
+# Helper function for assembling ranges from sizes and positions.
+def assembleRanges(sizes, positions, hsCount, capacity, percentDisk,
     noShuffle=False):
-
-    if not noShuffle:
-        random.shuffle(buckets)
-
-    hotspots = []
+    ranges = []
     hsSum = 0
-    # TODO -- FIX ME TKTK
+
+    # We deliberately don't break out of the loop early in the event of
+    # overflow. We could do that, but it would result in our generating the
+    # wrong number of ranges, which would cause problems later. Instead,
+    # we let the loop continue, which will generate ranges of size 0 for all
+    # those after the overflow occurred.
     for i in range(hsCount):
-        hsSize = sizes[i] if hsSum + sizes[i] <= capacity else capacity - hsSum
+        hsSize = sizes[i]
+        # Check capacity.
+        if hsSum + sizes[i] > capacity:
+            hsSize = capacity - hsSum
         hsStart = positions[i]
         # Check for overlap. If there is, we just push the hotspot forward to
-        # make them adjacent.
-        if i > 0 and hsStart < hotspots[i-1][1]:
-            hsStart = hotspots[i-1][1]
+        # make them adjacent. Short-circuits of ranges is too short.
+        if len(ranges) > 1 and hsStart < ranges[i-1][1]:
+            hsStart = ranges[i-1][1]
         hsEnd = hsStart + hsSize
         # Check to make sure hsEnd isn't out of bounds.
-        if hsEnd > 100:
-            hsEnd = 100
-        hotspots.append((hsStart, hsEnd))
+        if hsEnd > percentDisk:
+            hsEnd = percentDisk
+        ranges.append((hsStart, hsEnd))
         hsSum += hsEnd - hsStart
-        if hsEnd == 100 or hsSum >= capacity:
-            break
 
     if not noShuffle:
-        random.shuffle(hotspots)
+        random.shuffle(ranges)
 
-    return hotspots
+    return ranges
+
+# Make uniform random ranges.
+def makeUniformRanges(hsCount, hsSpace, percentDisk):
+    sizes = []
+    positions = []
+    for i in range(hsCount):
+        sizes.append(random.random())
+        positions.append(random.uniform(0.0, percentDisk))
+    positions.sort()
+    sizeSum = sum(sizes)
+    sizes = [hsSpace * s / sizeSum for s in sizes]
+    return assembleRanges(sizes, positions, hsCount, hsSpace, percentDisk)
 
 # Create hotspot range distribution.
 def makeRanges(args, config):
@@ -847,11 +838,12 @@ def makeRanges(args, config):
     wdCount = config["wdcount"]
     totalCount = hsCount + wdCount
     hsSpace = config["hotspotcap"]
+    percentDisk = config["percentdisk"]
 
     # Even
     if mode == "even":
         width = hsSpace / hsCount
-        freeSpace = 100.0 - hsSpace
+        freeSpace = percentDisk - hsSpace
         gapCount = hsCount + 1
         gapWidth = freeSpace / gapCount
         stride = width + gapWidth
@@ -863,11 +855,15 @@ def makeRanges(args, config):
 
     # Gaussian
     elif mode == "gaussian":
-        sigma = config["distribution"][0]
-        sizes, buckets, positions = getGaussianRangeComponents(0, sigma, args.sample_count,
-            hsCount, hsSpace)
-        ranges = buildGaussianRanges(sizes, buckets, positions, hsCount,
-            hsSpace, noShuffle=args.no_shuffle)
+        sigma = config["distribution"][1]
+        sizes, positions = getGaussianRangeComponents(sigma, args.sample_count,
+            hsCount, hsSpace, percentDisk)
+        ranges = assembleRanges(sizes, positions, hsCount,
+            hsSpace, config["percentdisk"], noShuffle=args.no_shuffle)
+
+    # Uniform random
+    elif mode == "uniform":
+        ranges = makeUniformRanges(hsCount, hsSpace, percentDisk)
 
     return ranges
 
@@ -876,6 +872,7 @@ def makeWDs(args, config):
     wdList = []
     wdCount = config["wdcount"]
     hsCount = config["hotspotnum"]
+    percentDisk = config["percentdisk"]
     skews = makeSkews(args, config)
     ranges = makeRanges(args, config)
 
@@ -891,6 +888,8 @@ def makeWDs(args, config):
         wdf.set("xfersize", config["xfersize"])
         wdf.set("seekpct", config["seekpct"])
         wdf.set("rdpct", config["rdpct"])
+        if percentDisk != 100.0:
+            wdf.addRange((0, percentDisk))
         # Hotspot.
         if i >= wdCount:
             j = i - wdCount - 1
