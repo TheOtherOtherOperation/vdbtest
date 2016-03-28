@@ -18,6 +18,7 @@ import numpy as np
 import scipy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
 import pylab
 from collections import OrderedDict
 
@@ -560,20 +561,22 @@ def makeSkews(args, config, graph=False):
     # Even.
     if mode == "even":
         skews = [ioPct / totalCount] * hsCount
+        # Graph if requested.
+        graphSkews(config, mode, skews)
 
     # Gaussian
     elif mode == "gaussian":
         sigma = config["distribution"][0]
         skews = makeGaussianSkews(sigma, args.sample_count, hsCount, ioPct)
+         # Graph if requested.
+        graphSkews(config, mode, skews, sigma=sigma)
 
     # Uniform
     elif mode == "uniform":
         skews = [random.random() for i in range(hsCount)]
         skewSum = sum(skews)
         skews = [ioPct * s / skewSum for s in skews]
-
-    # Graph if requested.
-    if args.graph_skews:
+        # Graph if requested.
         graphSkews(config, mode, skews)
 
     # Shuffle.
@@ -642,7 +645,8 @@ def getBucketCounts(samples, distMin, distMax, bucketCount):
 
     return buckets
 
-# Helper function for generating a sorted list of samples from a Gaussian distribution.
+# Helper function for generating a sorted list of samples from a Gaussian
+# distribution.
 def getGaussianSamples(mu, sigma, sampleCount):
     samples = np.random.normal(mu, sigma, sampleCount)
     samples.sort()
@@ -650,68 +654,50 @@ def getGaussianSamples(mu, sigma, sampleCount):
 
 # Graph Gaussian skews histogram using matplotlib.
 #
-# @param samples Samples from the distribution.
+# @param skews Skews to graph.
 # @param binCount Number of bins for the histogram.
 # @param mu Mean of the distribution. If None, will be determined automatically
 #           from the mean of samples.
 # @param sigma Standard deviation of the distribution. If None, will be
 #           determined automatically from the standard deviation of samples.
-# @param normed Whether or not to normalize the output.
-def graphGaussianSkews(samples, binCount, mu=None, sigma=None, normed=True):
-    if not mu:
-        mu = statistics.mean(samples)
-    if not sigma:
-        sigma = statistics.stdev(samples)
+def graphGaussianSkews(skews, binCount, sigma=None):
+    barX = np.arange(len(skews))
+    barY = np.array(skews)
 
-    count, bins, ignored = plt.hist(samples, binCount, normed=normed)
-    gaussianPDF = (lambda mu, sigma: 1/(sigma * np.sqrt(2 * np.pi)) *
-        np.exp( - (bins - mu)**2 / (2 * sigma**2) ) )
-    plt.plot(bins, gaussianPDF(mu, sigma), linewidth=2, color='r')
+    plt.bar(barX, barY, 1, color="blue")
     plt.draw()
 
-# Graph a histogram of skews using matplotlib.
+# Graph a bar chart of skews using matplotlib.
 #
 # @param skews Skews to graph.
 # @param yLim Max value for y-axis.
-def graphSkewsHistogram(skews, yLim, normed=False):
+def graphSkewBars(skews, yLim):
     x = range(len(skews))
     y = np.array(skews)
     width = 1
     plt.bar(x, y, width, color="blue")
     plt.draw()
-    pylab.ylim([0, sum(skews)])
 
 # Graph the skews distribution using matplotlib.
 #
 # @param config Configuration dictionary.
 # @param mode Distribution type: "gaussian" or "even".
 # @param skews Skews distribution.
-# @param sampleScale Amount by which to scale skews values.
-# @param normed Whether or not to normalize the output.
-def graphSkews(config, mode, skews, sampleScale=DEFAULT_SAMPLE_SCALE, normed=True):
+# @param sigma Standard deviation of the distribution.
+def graphSkews(config, mode, skews, sigma=None):
     plt.figure(1)
     fig = plt.figure(1)
     fig.suptitle("Skews - mode: {}".format(mode))
     plt.xlabel("Hotspot number")
     plt.ylabel("Percentage of IOs")
-    if mode == "gaussian":
-        samples = []
-        for i in range(len(skews)):
-            for j in range(int(skews[i] * sampleScale)):
-                samples.append(i)
-        graphGaussianSkews(np.array(samples), len(skews))
-    elif mode == "even" or mode == "uniform":
-        graphSkewsHistogram(skews, config['hotspotiopct'])
-    else:
-        print('Error: unknown graph mode "{}".'.format(mode))
+    graphSkewBars(skews, config['hotspotiopct'])
 
 # Graph the ranges distribution histogram using matplotlib.
 #
 # @param config Configuration dictionary.
 # @param ranges Range distribution.
 # @param skews Skews distribution.
-# @param normed Whether or not to normalize the output.
-def graphRanges(config, ranges, skews, normed=True):
+def graphRanges(config, ranges, skews):
     plt.figure(2)
     fig = plt.figure(2)
     fig.suptitle("Ranges - mode: {}".format(config["disttype"]))
