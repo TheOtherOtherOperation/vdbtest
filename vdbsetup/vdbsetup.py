@@ -785,7 +785,7 @@ def assembleRanges(sizes, positions, hsCount, capacity, percentDisk,
     # we let the loop continue, which will generate ranges of size 0 for all
     # those after the overflow occurred.
     for i in range(hsCount):
-        hsSize = sizes[i]
+        hsSize = float("{0:.2f}".format(sizes[i]))
         # Check capacity.
         if hsSum + sizes[i] > capacity:
             hsSize = capacity - hsSum
@@ -939,7 +939,7 @@ def truncate(f):
     if isinstance(f, float):
         if f.is_integer():
             return int(f)
-        return "{0:.3f}".format(f)
+        return "{0:.2f}".format(f)
     return f
 
 # Create an input file template.
