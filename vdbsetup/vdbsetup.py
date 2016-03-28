@@ -669,11 +669,11 @@ def graphGaussianSkews(samples, binCount, mu=None, sigma=None, normed=True):
     plt.plot(bins, gaussianPDF(mu, sigma), linewidth=2, color='r')
     plt.draw()
 
-# Graph even skews using matplotlib.
+# Graph a histogram of skews using matplotlib.
 #
 # @param skews Skews to graph.
 # @param yLim Max value for y-axis.
-def graphEvenSkews(skews, yLim, normed=False):
+def graphSkewsHistogram(skews, yLim, normed=False):
     x = range(len(skews))
     y = np.array(skews)
     width = 1
@@ -691,19 +691,21 @@ def graphEvenSkews(skews, yLim, normed=False):
 def graphSkews(config, mode, skews, sampleScale=DEFAULT_SAMPLE_SCALE, normed=True):
     plt.figure(1)
     fig = plt.figure(1)
-    fig.suptitle("Skews - Mode: {}".format(mode))
+    fig.suptitle("Skews - mode: {}".format(mode))
+    plt.xlabel("Hotspot number")
+    plt.ylabel("Percentage of IOs")
     if mode == "gaussian":
         samples = []
         for i in range(len(skews)):
             for j in range(int(skews[i] * sampleScale)):
                 samples.append(i)
         graphGaussianSkews(np.array(samples), len(skews))
-    elif mode == "even":
-        graphEvenSkews(skews, config['hotspotiopct'])
+    elif mode == "even" or mode == "uniform":
+        graphSkewsHistogram(skews, config['hotspotiopct'])
     else:
         print('Error: unknown graph mode "{}".'.format(mode))
 
-# Graph the ranges distribution using matplotlib.
+# Graph the ranges distribution histogram using matplotlib.
 #
 # @param config Configuration dictionary.
 # @param ranges Range distribution.
@@ -712,7 +714,7 @@ def graphSkews(config, mode, skews, sampleScale=DEFAULT_SAMPLE_SCALE, normed=Tru
 def graphRanges(config, ranges, skews, normed=True):
     plt.figure(2)
     fig = plt.figure(2)
-    fig.suptitle("Ranges - Mode: {}".format(config["disttype"]))
+    fig.suptitle("Ranges - mode: {}".format(config["disttype"]))
     plt.xlabel("Disk location")
     plt.ylabel("Percentage of IOs")
 
