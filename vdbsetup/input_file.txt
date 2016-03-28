@@ -26,4 +26,4 @@ hotspotnum=50
 hotspotcap=10
 hotspotiopct=25
 disttype=gaussian
-distribution=0.5,0.5
+distribution=0.75,0.5
