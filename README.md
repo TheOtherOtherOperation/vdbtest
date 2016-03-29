@@ -21,7 +21,7 @@ VDBTest (vdbtest.py) is a tool for automating VDbench storage benchmark testing 
 ## Setup
 
 ### Virtual Machines
-VDBTest is intended to be used with some number **n** of similar virtual machines (called "targets") on a LAN, with access to a common file share and the storage system under test. Each virtual machine must be running NetJobsAgent.py (included with NetJobs) and have VDbench installed.
+VDBTest is intended to be used with some number *n* of similar virtual machines (called "targets") on a LAN, with access to a common file share and the storage system under test. Each virtual machine must be running NetJobsAgent.py (included with NetJobs) and have VDbench installed.
 
 The recommended configuration is to create a separate controller machine, which may be either a physical machine or another VM, to run vdbtest.py and host the common file share (NFS or something similar). The controller machine does not explicit access to the storage system under test. The file share should have a directory structure similar to the following:
 
@@ -36,7 +36,7 @@ The recommended configuration is to create a separate controller machine, which 
     - work/
 ```
 
-The target VMs must have the same path to the share, so if VM 1's share path is, for example, "/mnt/nfsshare/", then all other VMs must also have the share mounted at "/mnt/nfsshare/". VDBTest assumes that each target VM's call to VDbench will have the same name---for example, "start_vdbench.sh". However, each virtual machine must have a unique identifier, such as "vdb1", "vdb2", ..., "vdbN". Thus, we recommend creating a single script for all virtual machines and modifying it with each VM's identifier. The recommended way to do this is to create a single VM, clone it **n** times, and then update each VM's script accordingly.
+The target VMs must have the same path to the share, so if VM 1's share path is, for example, "/mnt/nfsshare/", then all other VMs must also have the share mounted at "/mnt/nfsshare/". VDBTest assumes that each target VM's call to VDbench will have the same name---for example, "start_vdbench.sh". However, each virtual machine must have a unique identifier, such as "vdb1", "vdb2", ..., "vdbN". Thus, we recommend creating a single script for all virtual machines and modifying it with each VM's identifier. The recommended way to do this is to create a single VM, clone it *n* times, and then update each VM's script accordingly.
 
 An example script, "sample_vm_script.sh", is provided:
 
@@ -68,7 +68,7 @@ eval $command
 
 Here, the VM's identifier is "vdb1", which must be unique to this VM; the VM has the share mounted at "/mnt/nfsshare", and the storage device under test is located at "/dev/sdb". Expanding the variables, the VDbench configuration for this VM would then need to be locatable at "/mnt/nfsshare/config/vdb1", and VDbench would save its output to "/mnt/nfsshare/output/vdb1".
 
-*Important:* notice how both the parameters for "-f '$SHARE/config/$NAME'" and "-o '$SHARE/output/$NAME'" in the command line end with the variable "$NAME". VDBTest identifies target VMs by the names of their configuration files. After each round of testing, it then expects the output directory ("$SHARE/output" in this case) to contain VDbench-generated subdirectories with the same name. In other words, if the base name of the configuration file path and the base name of the output path are not the same, VDBTest won't be able to locate the output files.
+**Important:** notice how both the parameters for "-f '$SHARE/config/$NAME'" and "-o '$SHARE/output/$NAME'" in the command line end with the variable "$NAME". VDBTest identifies target VMs by the names of their configuration files. After each round of testing, it then expects the output directory ("$SHARE/output" in this case) to contain VDbench-generated subdirectories with the same name. In other words, if the base name of the configuration file path and the base name of the output path are not the same, VDBTest won't be able to locate the output files.
 
 ### Configuration File
 The VDBTest configuration file (not to be confused with the VDbench configuration files for each target VM) require exactly two parameters: "command: [SOME COMMAND]" and "targets:", where "command" specifies the name of the script to execute on each VM and "targets" is a newline-delimited list of target VMs (either IP addresses or DNS names). Empty lines and any lines beginning with a hash ("#") are ignored.
@@ -151,11 +151,11 @@ Specifies a timeout (in seconds) for the scheduler. If this amount of time passe
 - `-s SUCCESS_MULTIPLIER, --success-multiplier SUCCESS_MULTIPLIER`
 Each time a VDbench run completes, VDBTest scans the output files to see if all of the target VMs had IO latency below the specified threshold ("targetLatency"). If yes, the IOPS rate is multiplied by this value for the next run (default 5.0).
 - `-f FAILURE_MULTIPLIER, --failure-multiplier FAILURE_MULTIPLIER`
-Similar to --success-multiplier, but if **any** VM failed (was above) the target latency, the IOPS rate is multiplied by this value on the next run (default 0.3).
+Similar to --success-multiplier, but if *any* VM failed (was above) the target latency, the IOPS rate is multiplied by this value on the next run (default 0.3).
 - `-c CONSECUTIVE_FAILURES, --consecutive-failures CONSECUTIVE_FAILURES`
 By default, VDBTest aborts early if two (2) consecutive VDbench runs fail. This overrides that behavior.
 - `-z FUZZINESS, --fuzziness FUZZINESS`
-Specifies an acceptable fraction of skew from the target latency, such that targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness). For example, if the target latency is 5.0 and fuzziness is 0.1, then any latency x such that 4.5 <= x <= 5.5 will be considered a pass. By default, this value is 0, so VDBTest will just keep searching until (a) **all** target VMs achieve the exact target latency, which is unlikely, or (b) some other condition causes the test to end.
+Specifies an acceptable fraction of skew from the target latency, such that targetLatency * (1.0 - fuzziness) <= x <= targetLatency * (1.0 + fuzziness). For example, if the target latency is 5.0 and fuzziness is 0.1, then any latency x such that 4.5 <= x <= 5.5 will be considered a pass. By default, this value is 0, so VDBTest will just keep searching until (a) *all* target VMs achieve the exact target latency, which is unlikely, or (b) some other condition causes the test to end.
 - `-i IOPS_TOLERANCE, --iops-tolerance IOPS_TOLERANCE`
 On some storage systems, VDbench soft caps at certain IOPS rates, such that further increasing the IOPS value does not actually cause VDbench to perform more IOPS, which also means the latency no longer increases. Since these soft caps can effectively be considered the optimal IOPS rate for the specified target latency on those systems, this parameter determines when VDBTest stops trying to increase the IOPS value. Specifically, if IOPS achieved * IOPS tolerance < IOPS requested on any of the target VMs, the test terminates early (default 1.5).
 
