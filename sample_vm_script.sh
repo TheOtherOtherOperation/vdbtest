@@ -6,14 +6,14 @@
 #
 # Make sure SHARE has the following directory structure:
 # SHARE
-# -- config	# Contains VDbench config files named after NAME.
+# -- config	    # Contains VDbench config files named after NAME.
 # -- output     # For output files.
-# -- WORK       # Some directory for containing NetJobs work files.
+# -- work       # Some directory for containing NetJobs work files.
 #
 
-export NAME="vdb1"    # Unique identifier for this VM/VDbench instance.
+export NAME="vdb1"              # Unique identifier for this VM.
 export SHARE="/mnt/nfsshare"    # Where the share is mounted.
-export LUN="/dev/sdb"    # Device identifier for LUN.
+export LUN="/dev/sdb"           # Device identifier for LUN.
 
 # ########################################################################### #
 # DO NOT MODIFY PAST THIS LINE                                                #
