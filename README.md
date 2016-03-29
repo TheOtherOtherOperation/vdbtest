@@ -15,7 +15,7 @@ VDBTest (vdbtest.py) is a tool for automating VDbench storage benchmark testing 
 ## Requirements
 - Python 3.4 or later (http://www.python.org/)
 - NetJobs 2.2 or later (included)
-- Oracle VDbench 5.04.01 or later (http://www.oracle.com/technetwork/server-storage/vdbench-downloads-1901681.html) --- requires Java
+- Oracle VDbench 5.04.01 or later (http://www.oracle.com/technetwork/server-storage/vdbench-downloads-1901681.html)
 - Java SE Runtime Environment (JRE) 1.6 or later (http://www.oracle.com/technetwork/java/javase/downloads/index.html)
 
 ## Setup
