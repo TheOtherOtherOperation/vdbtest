@@ -26,6 +26,7 @@ DEFAULT_MAJOR_DELIMITER = " *= *"
 DEFAULT_MINOR_DELIMITER = " *, *"
 DEFAULT_MONTE_CARLO_SAMPLES = 200000
 DEFAULT_SAMPLE_SCALE = 10000
+MAX_RANGE_RETRIES = 10
 
 INPUT_TEMPLATE_CONTENT = """#
 # vdbsetup input file example
@@ -785,26 +786,79 @@ def assembleRanges(sizes, positions, hsCount, capacity, percentDisk,
     # we let the loop continue, which will generate ranges of size 0 for all
     # those after the overflow occurred.
     for i in range(hsCount):
-        hsSize = float("{0:.2f}".format(sizes[i]))
-        # Check capacity.
-        if hsSum + sizes[i] > capacity:
-            hsSize = capacity - hsSum
-        hsStart = positions[i]
-        # Check for overlap. If there is, we just push the hotspot forward to
-        # make them adjacent. Short-circuits of ranges is too short.
-        if len(ranges) > 1 and hsStart < ranges[i-1][1]:
-            hsStart = ranges[i-1][1]
-        hsEnd = hsStart + hsSize
-        # Check to make sure hsEnd isn't out of bounds.
-        if hsEnd > percentDisk:
-            hsEnd = percentDisk
-        ranges.append((hsStart, hsEnd))
-        hsSum += hsEnd - hsStart
+        r = assembleRangesHelper(ranges, positions[i], sizes[i], capacity,
+            percentDisk, hsSum)
+        ranges.append(r)
+        hsSum += r[1] - r[0]
+        # Need to resort the ranges after each iteration in case we added one
+        # out of order.
+        ranges.sort(key=lambda r: r[0])
 
     if not noShuffle:
         random.shuffle(ranges)
 
     return ranges
+
+# Helper for assembleRanges that tries to construct a new range according to
+# specifications.
+#
+# @param ranges Currently allotted ranges.
+# @param size Size of the range to generate.
+# @param capacity Maximum size of sum of all hotspots.
+# @param percentDisk Maximum percent of disk we're allowed to use.
+# @param hsSum The current sum of all hotspot sizes.
+def assembleRangesHelper(ranges, position, size, capacity, percentDisk, hsSum):
+    if hsSum + size > capacity:
+        size = capacity - hsSum
+    hsSize = formatRangeVal(size)
+
+    assert hsSize > 0.0, "Size 0 hotspot generated."
+
+    hsStart = formatRangeVal(position)
+    hsEnd = formatRangeVal(hsStart + size)
+
+    if checkRangeConflicts(ranges, hsStart, hsEnd):
+        hsStart = ranges[-1][1]
+        hsEnd = formatRangeVal(hsStart + size)
+
+    # We exceeded the capacity. Try to insert it at a (uniform) random position.
+    if not checkRangeVals(hsStart, hsEnd, percentDisk):
+        tries = 0
+        while True:
+            hsStart = formatRangeVal(random.uniform(0.0, percentDisk))
+            hsEnd = formatRangeVal(hsStart + size)
+            if (checkRangeVals(hsStart, hsEnd, percentDisk) and not
+                checkRangeConflicts(ranges, hsStart, hsEnd)):
+                break
+            tries += 1
+            if tries >= MAX_RANGE_RETRIES:
+                raise Exception("Error: unable to generate random non-overlapping range within {} tries.".format(
+                    MAX_RANGE_RETRIES))
+
+    # Sanity check.
+    assert checkRangeVals(hsStart, hsEnd, percentDisk), "Generated an invalid range: ({},{}). Allowed percentage of disk: {}.".format(
+        hsStart, hsEnd, percentDisk)
+
+    return (hsStart, hsEnd)
+
+# Format a range value by truncating it to two decimal places.
+def formatRangeVal(val):
+    return float(truncate(val))
+
+# Check if range is valid stand-alone, but does not check for conflicts.
+def checkRangeVals(start, end, percentDisk):
+    return 0.0 <= start < end <= percentDisk
+
+# Check for range conflict.
+#
+# @param ranges Currently allotted ranges.
+# @param start Start of range.
+# @param end End of range.
+def checkRangeConflicts(ranges, start, end):
+    for r in ranges:
+        if r[0] <= start < r[1]:
+            return True
+    return False
 
 # Make uniform random ranges.
 def makeUniformRanges(hsCount, hsSpace, percentDisk):
