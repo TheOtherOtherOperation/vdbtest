@@ -23,7 +23,7 @@ VDBTest (vdbtest.py) is a tool for automating VDbench storage benchmark testing 
 ### Virtual Machines
 VDBTest is intended to be used with some number *n* of similar virtual machines (called "targets") on a LAN, with access to a common file share and the storage system under test. Each virtual machine must be running NetJobsAgent.py (included with NetJobs) and have VDbench installed.
 
-The recommended configuration is to create a separate controller machine, which may be either a physical machine or another VM, to run vdbtest.py and host the common file share (NFS or something similar). The controller machine does not explicit access to the storage system under test. The file share should have a directory structure similar to the following:
+The recommended configuration is to create a separate controller machine, which may be either a physical machine or another VM, to run vdbtest.py and host the common file share (NFS or something similar). The controller machine does not need direct access to the storage system under test. The file share should have a directory structure similar to the following:
 
 ```
 - share/
