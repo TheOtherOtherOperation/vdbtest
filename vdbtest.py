@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #
-# vdbtest.py - VDbench Test Script
+# vdbtest.py - Vdbench Test Script
 #
 # Author: Ramon A. Lovato (ramonalovato.com)
 # For: DeepStorage, LLC (deepstorage.net)
@@ -118,7 +118,7 @@ class TestInfo:
             print("\nWarning: some targets did not have their data updated. "
                 "This is usually due to a broken pipe, bad configuration, or "
                 "erroneous files placed in the configuration directory. It "
-                "can also happen if the VDbench output directories have "
+                "can also happen if the Vdbench output directories have "
                 "different base names than their configuration files. These "
                 "targets will be blacklisted for the remainder of the run.")
             print("\nAffected targets:")
@@ -216,12 +216,12 @@ class LogWriter:
 
 # Get CLI arguments.
 def getArgs():
-    parser = argparse.ArgumentParser(description="Run VDbench tests to match IO response across multiple machines against target latency.")
+    parser = argparse.ArgumentParser(description="Run Vdbench tests to match IO response across multiple machines against target latency.")
     # Positional.
     parser.add_argument("configFile", type=str,
         help="path to the configuration file")
     parser.add_argument("configDir", type=str,
-        help="directory containing VDbench config files")
+        help="directory containing Vdbench config files")
     parser.add_argument("outputParent", type=str,
         help="the parent directory of the directories containing output files")
     parser.add_argument("workFolder", type=str,
@@ -445,7 +445,7 @@ def compareResultLatencies(allResults, targetLatency, fuzziness):
 
     return True, maybeDone
 
-# Make a new VDbench configuration file.
+# Make a new Vdbench configuration file.
 def makeNewVDBConfig(oldConfig, newConfig, newIORate):
     try:
         vdbconfig.makeNewConfig(oldConfig, newConfig, newIORate)
@@ -596,7 +596,7 @@ def run(args, config, njconfig, testInfo, logWriter):
                 "Yes" if allPassed else "No"))
             print("Did all targets achieve sufficient IOPS? {}.\n".format(
                 "Yes" if sufficientIOPS else "No"))
-            print("Archiving output and VDbench configurations.\n")
+            print("Archiving output and Vdbench configurations.\n")
 
         archiveContents(args.outputParent, run)
         if run == args.max_runs:
@@ -609,7 +609,7 @@ def run(args, config, njconfig, testInfo, logWriter):
         else:
             consecutiveFailures += 1
             if consecutiveFailures >= args.consecutive_failures:
-                message = "VDbench failed to achieve the target latency {}/{} consecutive time(s). Aborting run.".format(
+                message = "Vdbench failed to achieve the target latency {}/{} consecutive time(s). Aborting run.".format(
                     consecutiveFailures, args.consecutive_failures)
                 print("\n--- Notice: {}\n".format(message))
                 logWriter.logSignOff(message)
@@ -619,7 +619,7 @@ def run(args, config, njconfig, testInfo, logWriter):
                     consecutiveFailures, args.consecutive_failures))
 
         if not sufficientIOPS:
-            message = "VDbench failed to achieve requested IOPS within tolerance of {}. Requested IO rate is too high or exceeds soft cap. Aborting run.".format(
+            message = "Vdbench failed to achieve requested IOPS within tolerance of {}. Requested IO rate is too high or exceeds soft cap. Aborting run.".format(
                 args.iops_tolerance)
             print("\n--- Notice: {}\n".format(message))
             logWriter.logSignOff(message)
@@ -647,7 +647,7 @@ def main():
         print("\n--- DeepStorage vdbtest ---")
         print("Verbose mode enabled.")
         print("> Configuration: {}".format(args.configFile))
-        print("> Directory for VDbench configurations: {}".format(
+        print("> Directory for Vdbench configurations: {}".format(
             args.configDir))
         print("> Output directory: {}".format(args.outputParent))
         print("> NetJobs work folder: {}".format(args.workFolder))
