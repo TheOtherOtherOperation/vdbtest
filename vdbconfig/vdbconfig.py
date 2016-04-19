@@ -26,7 +26,27 @@ def getArgs():
     return args
 
 def tokenize(line):
-    return [t.split("=") for t in line.split(",")]
+    tokens = []
+    parens = []
+    current = ""
+    for c in line:
+        if c == "," and len(parens) == 0:
+            tokens.append(current)
+            current = ""
+        else:
+            if c == "(":
+                parens.append(c)
+            elif c == ")":
+                if len(parens) == 0:
+                    raise Exception("Line {}: mismatched parentheses.".format(line))
+                parens.pop()
+            current += c
+    tokens.append(current)
+
+    if len(parens) != 0:
+        raise Exception("Line {}: mismatched parentheses.".format(line))
+
+    return [t.split("=") for t in tokens]
 
 def makeNewConfig(sourcePath, destPath, newIORate):
     with open(sourcePath, "r") as inFile, open(destPath, "w") as outFile:

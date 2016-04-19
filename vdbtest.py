@@ -72,8 +72,8 @@ class TestInfo:
 
     # Add latency and achieved IOPS to TestInfo.
     def updatePostTest(self, outputParent):
+        self.state = 1
         for folder in getContents(outputParent):
-            self.state = 1
             name = os.path.basename(folder)
             if name not in self.names:
                 if name not in self.ignoredNames:
