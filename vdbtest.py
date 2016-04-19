@@ -380,12 +380,12 @@ def getContents(parentDir):
 # Reads test results from totals.html in the specified directory.
 def getTestResults(parentDir):
     try:
-        totalsFile = findTotalsFile(parentDir)
+        flatFile = findFlatFile(parentDir)
     except Exception as e:
         raise e
         
     try:
-        with open(totalsFile, "r") as f:
+        with open(FlatFile, "r") as f:
             # Line we care about is the last in the file.
             lines = f.readlines()
             # Easier to hard-code these, since they shouldn't change.
@@ -409,10 +409,10 @@ def getTestResults(parentDir):
     except IOError as e:
         raise e
 
-# Find absolute path to totals.html file in specified directory.
-def findTotalsFile(parentDir):
+# Find absolute path to flatfile.html file in specified directory.
+def findFlatFile(parentDir):
     for f in os.listdir(parentDir):
-        if os.path.basename(f) == "totals.html":
+        if os.path.basename(f) == "flatfile.html":
             return os.path.join(parentDir, f)
     # Didn't find.
     raise Exception(
