@@ -86,11 +86,12 @@ class TestInfo:
                 results = getTestResults(folder)
             except Exception as e:
                 self.blacklistTarget(name)
-                print("Warning: unable to locate \"totals.html\" file for {}. Adding to blacklist.".format(
-                    name))
+                print("Warning: unable to get test results for {}. Adding to blacklist. Original exception follows:\n{}".format(
+                    name, str(e)))
 
-            self.achievedIOPS[name].append(float(results["i/o rate"]))
-            self.latencies[name].append(float(results["resp time"]))
+            if name in self.names and not name in self.ignoredNames:
+                self.achievedIOPS[name].append(float(results["rate"]))
+                self.latencies[name].append(float(results["resp"]))
         
         # Check for targets without updated data and blacklist them.
         self.blacklistTest()
@@ -385,28 +386,23 @@ def getTestResults(parentDir):
         raise e
         
     try:
-        with open(FlatFile, "r") as f:
-            # Line we care about is the last in the file.
+        with open(flatFile, "r") as f:
+            # Line for results is the last in the file, but first we need to locate the keys.
             lines = f.readlines()
-            # Easier to hard-code these, since they shouldn't change.
-            keys = ["date/time",
-                    "interval",
-                    "i/o rate",
-                    "MB/sec 1024**2",
-                    "bytes i/o",
-                    "read pct",
-                    "resp time",
-                    "read resp",
-                    "write resp",
-                    "resp max",
-                    "resp stddev",
-                    "queue depth",
-                    "cpu% sys+u",
-                    "cpu% sys"]
-            values = re.split("\s+", lines[-1])
+            
+            # Keys are the first non-comment ("*") and non-HTML tag ("<") line in file.
+            keyIt = 0
+            while lines[keyIt].startswith("*") or lines[keyIt].startswith("<") or not lines[keyIt].strip():
+                keyIt += 1
+                if keyIt >= len(lines):
+                    raise Exception("Unable to locate result keys. File {} is invalid.".format(
+                        flatFile))
+                continue
+            keys = re.split("\s+", lines[keyIt].strip())
+            values = re.split("\s+", lines[-1].strip())
             results = dict(zip(keys, values))
             return results
-    except IOError as e:
+    except Exception as e:
         raise e
 
 # Find absolute path to flatfile.html file in specified directory.
@@ -416,7 +412,7 @@ def findFlatFile(parentDir):
             return os.path.join(parentDir, f)
     # Didn't find.
     raise Exception(
-        "Error: directory {} does not contain the file totals.html.".format(
+        "Error: directory {} does not contain the file flatfile.html.".format(
             parentDir))
 
 # Get all test results from the directories within the output directory.
@@ -434,7 +430,7 @@ def compareResultLatencies(allResults, targetLatency, fuzziness):
     maxLat = targetLatency * (1.0 + fuzziness)
     for r in allResults.values():
         try:
-            responseTime = float(r["resp time"])
+            responseTime = float(r["resp"])
         except ValueError as e:
             raise e
 
