@@ -178,6 +178,16 @@ In CentOS 7, network configurations are handled by NetworkManager. The easiest w
     
 This will bring up a graphical interface from which the interfaces can be configured. Go to "Edit a connection", select the appropriate Ethernet interface, and choose "<Edit...>". Set the IPv4 configuration to "<Manual>", and then add the IP addresses 192.168.236.1/24 and 192.168.237.1/24. These will be the IP addresses for the NFS server. You will need to change the final byte when configuring the client(s). Leave the Gateway field blank and delete the DNS servers.
 
+If deploying the VM from a template, rather than building from scratch, the hypervisor will most likely change the MAC address of the network interface. This will most likely break the connection to the 192.168.236.0/24 and 192.168.237.0/24 subnets. To prevent this from happening, we need to remove all device-specific identifying information from the network configuration.
+
+Open the network-scripts folder and display the desired configuration files:
+    cd /etc/sysconfig/network-scripts/
+    ls ifcfg-*
+    
+This should display one or more ifcfg files whose names will vary based on the system. They will probably be either of the form ifcfg-ethN or ifcfg-Wired connection N, where N is an integer. There may also be others, such as ifcfg-lo, which is most likely a local loopback (127.0.0.1). You can use ifconfig to determine which configuration is assigned to each IP address.
+
+Use a text editor to open the ifcfg- file for the interface you want to update (probably ifcfg-eth0 or ifcfg-Wired connection 1) and delete the lines for HWADDR and UUID.
+
 Save the changes and restart the VM.
 
-Note that your NFS settings will need to be configured properly. The server will need to be exporting "/nfsshare 192.168.237.0/24", and the clients will need to be mounting "192.168.237.1:/nfsshare /nfsshare nfs    rw,hard,intr    0 0" in /etc/fstab.
+Note that your NFS settings will need to be configured properly. The server will need to be exporting "/nfsshare 192.168.237.0/24", and the clients will need to be mounting "192.168.237.1:/nfsshare /nfsshare nfs    rw,hard,intr    0 0" in /etc/fstab
