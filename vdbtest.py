@@ -666,7 +666,7 @@ def run(args, config, njconfig, testInfo, logWriter):
 
         testInfo.updatePostTest(args.outputParent)
 
-        print("\nTotal IOPS achieved/requested: {:.2f}/{:d}".format(testInfo.totalAchieved[-1], int(testInfo.totalRequested[-1])))
+        print("\nTotal IOPS achieved/requested: {:.2f}/{:.2f}".format(testInfo.totalAchieved[-1], testInfo.totalRequested[-1]))
         print("Average latency/allowed: {:.2f}/{:.2f}".format(testInfo.averageLatency[-1], args.targetLatency))
 
         logWriter.updateLog(testInfo, run)
