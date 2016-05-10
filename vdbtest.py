@@ -25,6 +25,7 @@ DEFAULT_FAILURE_MULTIPLIER = 0.3
 DEFAULT_CONSECUTIVE_FAILURES = 2
 DEFAULT_FUZZINESS = 0.0
 DEFAULT_IOPS_TOLERANCE = 1.5
+DEFAULT_BINARY_SEARCH_ITERATIONS = 5
 
 # Simple data structure for storing test information. Note that run indexing
 # goes from 1 to args.max_runs (for readability). Thus, run 0 data are
@@ -54,6 +55,11 @@ class TestInfo:
         self.state = 0
         self.runCount = 0
         self.ignoredNames = []
+        self.allPassed = []
+        self.totalRequested = []
+        self.totalAchieved = []
+        self.totalLatency = []
+        self.averageLatency = []
 
     # Add requested IOPS to TestInfo.
     def updatePreTest(self, configDir):
@@ -95,6 +101,19 @@ class TestInfo:
         
         # Check for targets without updated data and blacklist them.
         self.blacklistTest()
+
+        totalRequestedIOPS = 0.0
+        totalAchievedIOPS = 0.0
+        totalLatency = 0.0
+        for name in self.names:
+            totalRequestedIOPS += self.requestedIOPS[name][-1]
+            totalAchievedIOPS += self.achievedIOPS[name][-1]
+            totalLatency += self.latencies[name][-1]
+        averageLatency = totalLatency  / len(self.latencies.keys())
+        self.totalRequested.append(totalRequestedIOPS)
+        self.totalAchieved.append(totalAchievedIOPS)
+        self.totalLatency.append(totalLatency)
+        self.averageLatency.append(averageLatency)
 
     # Scan the data structure and blacklist any list whose length is shorter
     # than self.runCount + 1 (since the first element of each list is always
@@ -138,6 +157,12 @@ class TestInfo:
             del(self.achievedIOPS[name])
             del(self.latencies[name])
             self.ignoredNames.append(name)
+
+    # Append the specified result to the end of testPassed.
+    def appendAllPassed(self, a):
+        if not self.state == 1:
+            raise Exception("TestInfo.appendAllPassed is only valid in post-test (1) state.")
+        self.allPassed.append(a)
 
 # LogWriter object for better encapsulating Python's file IO and CSV-handling.
 # Tracks the CSV writer associated with the log file and auto-flushes rows.
@@ -189,19 +214,19 @@ class LogWriter:
         return row
 
     def updateLogTotalsHelper(testInfo):
-        totalRequestedIOPS = 0.0
-        totalAchievedIOPS = 0.0
-        totalLatency = 0.0
-        for name in testInfo.names:
-            totalRequestedIOPS += testInfo.requestedIOPS[name][-1]
-            totalAchievedIOPS += testInfo.achievedIOPS[name][-1]
-            totalLatency += testInfo.latencies[name][-1]
-        averageLatency = totalLatency  / len(testInfo.latencies.keys())
+        # totalRequestedIOPS = 0.0
+        # totalAchievedIOPS = 0.0
+        # totalLatency = 0.0
+        # for name in testInfo.names:
+        #     totalRequestedIOPS += testInfo.requestedIOPS[name][-1]
+        #     totalAchievedIOPS += testInfo.achievedIOPS[name][-1]
+        #     totalLatency += testInfo.latencies[name][-1]
+        # averageLatency = totalLatency  / len(testInfo.latencies.keys())
         row = ["",
                "total/average",
-               str(totalRequestedIOPS),
-               str(totalAchievedIOPS),
-               str(averageLatency)]
+               str(testInfo.totalRequested),
+               str(testInfo.totalAchieved),
+               str(testInfo.averageLatency)]
         return row
 
     # Write log sign-off message on its own line, after a signel empty line.
@@ -249,7 +274,7 @@ def getArgs():
         .format(DEFAULT_FAILURE_MULTIPLIER))
     parser.add_argument("-c", "--consecutive-failures", type=int,
         default=DEFAULT_CONSECUTIVE_FAILURES,
-        help="terminate after n consecutive failures (default {})"
+        help="terminate after this many consecutive failures (default {})"
         .format(DEFAULT_CONSECUTIVE_FAILURES))
     parser.add_argument("-z", "--fuzziness", type=float,
         default=DEFAULT_FUZZINESS,
@@ -259,6 +284,12 @@ def getArgs():
         default=DEFAULT_IOPS_TOLERANCE,
         help="if IOPS achieved * IOPS tolerance < IOPS requested, terminate early (default {})".format(
             DEFAULT_IOPS_TOLERANCE))
+    parser.add_argument("-b", "--binary-search", action="store_true",
+        help="enable binary search mode")
+    parser.add_argument("-n", "--binary-search-iterations", type=int,
+        default=DEFAULT_BINARY_SEARCH_ITERATIONS,
+        help="maximum number of iterations to run binary search (default {}); does nothing if --binary-search is not specified".format(
+            DEFAULT_BINARY_SEARCH_ITERATIONS))
     parser.add_argument("-v", "--verbose", action="store_true",
         help="enable verbose mode")
 
@@ -285,6 +316,10 @@ def getArgs():
         print("Warning: iops_tolerance < 1.0. Using default ({}).".format(
             DEFAULT_IOPS_TOLERANCE))
         args.iops_tolerance = DEFAULT_IOPS_TOLERANCE
+    if args.binary_search == True and args.binary_search_iterations < 1:
+        print("Warning: binary search iterations must be be a positive integer. Using default ({}).".format(
+            DEFAULT_BINARY_SEARCH_ITERATIONS))
+        args.binary_search_iterations = DEFAULT_BINARY_SEARCH_ITERATIONS
 
     return args
 
@@ -523,7 +558,7 @@ def getOldIORate(configFile):
                             value = token[1]
 
                             if key == "iorate":
-                                return int(value)
+                                return int(float(value))
     except (IOError, ValueError) as e:
         raise e
     except (IsADirectoryError) as e:
@@ -542,6 +577,32 @@ def updateAndArchiveConfigs(args, allPassed, testID):
         newIORate = calculateNewIORate(oldFile, args, allPassed)
         makeNewVDBConfig(oldFile, oldName, newIORate)
 
+# Update all config files for binary search and archive the old ones.
+def updateAndArchiveConfigsBS(args, testInfo, testID, lower, upper):
+    allPassed = testInfo.allPassed
+    if allPassed[-1]:
+        lower = max(lower, testInfo.totalRequested[-1])
+    else:
+        upper = min(upper, testInfo.totalRequested[-1])
+
+    # They swapped places, so we've gotten as close as possible.
+    if lower >= upper:
+        return lower, upper
+
+    newTotal = (lower + ((upper - lower) / 2))
+    ratio = newTotal / testInfo.totalRequested[-1]
+
+    for f in getContents(args.configDir):
+        name = os.path.join(args.configDir, f)
+        oldName = name
+        oldFile = archiveFile(name, testID)
+
+        oldIORate = getOldIORate(oldFile)
+        newIORate = oldIORate * ratio
+        makeNewVDBConfig(oldFile, oldName, newIORate)
+
+    return lower, upper
+
 # Test if the achieved IOPS is acceptable (achieved * tolerance >= requested).
 def testAchievedIOPS(testInfo, tolerance):
     for name in testInfo.names:
@@ -557,16 +618,41 @@ def testAchievedIOPS(testInfo, tolerance):
 def getNameOnly(path):
     return os.path.splitext(os.path.basename(path))[0]
 
+# Test if binary search should start.
+def testBSStart(testInfo):
+    allPassed = testInfo.allPassed
+    if len(allPassed) < 2:
+        return False
+    else:
+        return allPassed[-1] != allPassed[-2]
+
 # Start the main run.
 def run(args, config, njconfig, testInfo, logWriter):
     print("Starting main run...")
 
     consecutiveFailures = 0
 
-    # Main loop. Note the run indexing goes from 1 to args.max_runs
-    # (for readability).
-    for run in range(1, args.max_runs+1):
-        print("\n--- Run {}/{} ----".format(run, args.max_runs))
+    run = 0
+    bsRun = 0
+    bsStarted = False
+    finished = False
+    lower = 0
+    upper = 0
+    while not finished:
+        run += 1
+        if not args.binary_search or not bsStarted and run >= args.max_runs:
+            finished = True
+        if args.binary_search and bsStarted:
+            bsRun += 1
+            if bsRun >= args.binary_search_iterations:
+                finished = True
+
+        if not args.binary_search:
+            print("\n--- Run {}/{} ---".format(run, args.max_runs))
+        elif not bsStarted:
+            print("\n--- Run {}/{} :: Waiting to Start Binary Search ---".format(run, args.max_runs))
+        else:
+            print("\n--- Run {} :: Binary Search Step {}/{} ---".format(run, bsRun, args.binary_search_iterations))
 
         testInfo.updatePreTest(args.configDir)
 
@@ -580,12 +666,17 @@ def run(args, config, njconfig, testInfo, logWriter):
 
         testInfo.updatePostTest(args.outputParent)
 
+        print("\nTotal IOPS achieved/requested: {:.2f}/{:d}".format(testInfo.totalAchieved[-1], int(testInfo.totalRequested[-1])))
+        print("Average latency/allowed: {:.2f}/{:.2f}".format(testInfo.averageLatency[-1], args.targetLatency))
+
         logWriter.updateLog(testInfo, run)
 
         allResults = getAllTestResults(args.outputParent)
         allPassed, isDone = compareResultLatencies(allResults,
             args.targetLatency, args.fuzziness)
         sufficientIOPS = testAchievedIOPS(testInfo, args.iops_tolerance)
+
+        testInfo.appendAllPassed(allPassed)
 
         if args.verbose:
             print("\nDid all targets achieve the target latency? {}.".format(
@@ -594,22 +685,16 @@ def run(args, config, njconfig, testInfo, logWriter):
                 "Yes" if sufficientIOPS else "No"))
             print("Archiving output and Vdbench configurations.\n")
 
-        archiveContents(args.outputParent, run)
-        if run == args.max_runs:
-            archiveContents(args.configDir, run)
-        else:
-            updateAndArchiveConfigs(args, allPassed, run)
-
         if allPassed:
             consecutiveFailures = 0
-        else:
+        elif not bsStarted:
             consecutiveFailures += 1
             if consecutiveFailures >= args.consecutive_failures:
                 message = "Vdbench failed to achieve the target latency {}/{} consecutive time(s). Aborting run.".format(
                     consecutiveFailures, args.consecutive_failures)
                 print("\n--- Notice: {}\n".format(message))
                 logWriter.logSignOff(message)
-                return
+                finished = True
             elif args.verbose:
                 print("Number of consecutive failures: {}/{}.".format(
                     consecutiveFailures, args.consecutive_failures))
@@ -619,7 +704,37 @@ def run(args, config, njconfig, testInfo, logWriter):
                 args.iops_tolerance)
             print("\n--- Notice: {}\n".format(message))
             logWriter.logSignOff(message)
-            return
+            finished = True
+
+        archiveContents(args.outputParent, run)
+
+        if finished:
+            archiveContents(args.configDir, run)
+            print("Reached maximum number of runs.")
+        else:
+            if args.binary_search:
+                if not bsStarted and testBSStart(testInfo):
+                    bsStarted = True
+                    totalRequested = testInfo.totalRequested
+                    if totalRequested[-1] < totalRequested[-2]:
+                        lower = totalRequested[-1]
+                        upper = totalRequested[-2]
+                    else:
+                        lower = totalRequested[-2]
+                        upper = totalRequested[-1]
+                    lower, upper = updateAndArchiveConfigsBS(args, testInfo, run, lower, upper)
+                elif bsStarted:
+                    lower, upper = updateAndArchiveConfigsBS(args, testInfo, run, lower, upper)
+                    if lower >= upper:
+                        archiveContents(args.configDir, run)
+                        print("Binary search converged to {} IOPS.".format(lower))
+                        finished = True
+                elif finished:
+                    print("Reached maximum number of runs without starting binary search.")
+                else:
+                    updateAndArchiveConfigs(args, allPassed, run)
+            else:
+                updateAndArchiveConfigs(args, allPassed, run)
 
         # Finish if sweet spot found.
         if isDone:
@@ -628,7 +743,7 @@ def run(args, config, njconfig, testInfo, logWriter):
             max=args.targetLatency * (1.0 + args.fuzziness))
             print("\n--- Notice: {}\n".format(message))
             logWriter.logSignOff(message)
-            return
+            finished = True
 
     # Max runs reached.
     message = "Max runs ({}) reached. Run complete.".format(args.max_runs)
